@@ -22,6 +22,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'center.create',
             'center.update',
             'center.delete',
+            'ratechart.view',
+            'ratechart.create',
+            'ratechart.update',
+            'ratechart.delete',
+            'ratechart.assign',
         ];
 
         foreach ($permissions as $permission) {
@@ -35,6 +40,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $milkOperatorRole->syncPermissions([
             'center.view',
             'center.create',
+            'ratechart.view',
         ]);
 
         // Ensure registration can attach the Accountant role without errors

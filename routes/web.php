@@ -6,12 +6,33 @@ use App\Livewire\Settings\Profile;
 use App\Livewire\Center\Form as CenterForm;
 use App\Livewire\Center\Show as CenterShow;
 use App\Livewire\Center\View as CenterView;
+use App\Livewire\RateChart\Calculator as RateChartCalculator;
+use App\Livewire\RateChart\Form as RateChartForm;
+use App\Livewire\RateChart\Show as RateChartShow;
+use App\Livewire\RateChart\View as RateChartView;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
+
+    Route::middleware('permission:ratechart.view')->group(function () {
+        Route::get('rate-charts', RateChartView::class)->name('rate-charts.view');
+        Route::get('rate-charts/calculator', RateChartCalculator::class)->name('rate-charts.calculator');
+        Route::get('rate-charts/{rateChart}', RateChartShow::class)
+            ->whereNumber('rateChart')
+            ->name('rate-charts.show');
+    });
+
+    Route::get('rate-charts/create', RateChartForm::class)
+        ->middleware('permission:ratechart.create')
+        ->name('rate-charts.create');
+
+    Route::get('rate-charts/{rateChart}/edit', RateChartForm::class)
+        ->middleware('permission:ratechart.update')
+        ->whereNumber('rateChart')
+        ->name('rate-charts.edit');
 
     Route::get('centers/create', CenterForm::class)
         ->middleware('permission:center.create')

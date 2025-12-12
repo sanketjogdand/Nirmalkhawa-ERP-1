@@ -16,7 +16,10 @@ class Show extends Component
     public function mount(Center $center): void
     {
         $this->authorize('center.view');
-        $this->center = $center->load(['village.taluka.district.state']);
+        $this->center = $center->load([
+            'village.taluka.district.state',
+            'rateChartAssignments.rateChart',
+        ]);
     }
 
     public function render()

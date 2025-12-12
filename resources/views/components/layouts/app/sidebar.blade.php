@@ -412,10 +412,11 @@
                     <flux:navlist.item :href="route('centers.view')" :current="request()->routeIs('centers.*')" wire:navigate>{{ __('Centers') }}</flux:navlist.item>
                 </flux:navlist.group>
             @endcan
-
-            <flux:navlist.group expandable :heading="__('Customers')" class="lg:grid" :expanded="false">
-                <flux:navlist.item :href="route('customers.view')" :current="request()->routeIs('customers.view')" wire:navigate>{{ __('Customers') }}</flux:navlist.item>
-            </flux:navlist.group>
+            @can('ratechart.view')
+                <flux:navlist.group expandable :heading="__('Rate Charts')" class="lg:grid" :expanded="false">
+                    <flux:navlist.item :href="route('rate-charts.view')" :current="request()->routeIs('rate-charts.*')" wire:navigate>{{ __('Rate Charts') }}</flux:navlist.item>
+                </flux:navlist.group>
+            @endcan
 
             <flux:spacer />
             <!-- <flux:navlist variant="outline">

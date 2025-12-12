@@ -4,6 +4,9 @@
         <h2 class="page-heading" style="margin-bottom:0;">Center Details</h2>
         <div style="display:flex; gap:10px;">
             <a href="{{ route('centers.view') }}" class="btn-primary" wire:navigate>Back to List</a>
+            @can('ratechart.view')
+                <a href="{{ route('rate-charts.view') }}" class="btn-primary" wire:navigate>Assignments / Rate Charts</a>
+            @endcan
             @can('center.update')
                 <a href="{{ route('centers.edit', $center->id) }}" class="btn-primary" wire:navigate>Edit Center</a>
             @endcan
@@ -35,5 +38,41 @@
                 <tr><th class="px-4 py-2 border dark:border-zinc-700">Updated At</th><td class="px-4 py-2 border dark:border-zinc-700">{{ $center->updated_at?->format('d M Y, h:i A') }}</td></tr>
             </tbody>
         </table>
+    </div>
+
+    <div style="margin-top:2rem;">
+        <h3 style="font-size:18px; font-weight:600; margin-bottom:10px;">Rate Chart Assignments</h3>
+        <div class="table-wrapper">
+            <table class="product-table hover-highlight">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Rate Chart</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Milk Type</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Effective From</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Effective To</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Status</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Manage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($center->rateChartAssignments->sortByDesc('effective_from') as $assignment)
+                        <tr>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $assignment->rateChart?->name }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $assignment->rateChart?->milk_type }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $assignment->effective_from?->format('d M Y') }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $assignment->effective_to?->format('d M Y') ?? 'Ongoing' }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $assignment->is_active ? 'Active' : 'Inactive' }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">
+                                @if($assignment->rateChart)
+                                    <a href="{{ route('rate-charts.show', $assignment->rate_chart_id) }}" class="action-link" wire:navigate>View Chart</a>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No assignments found.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
