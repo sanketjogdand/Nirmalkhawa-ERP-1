@@ -4,8 +4,11 @@ namespace App\Livewire\MilkIntake;
 
 use App\Models\Center;
 use App\Models\MilkIntake;
+use App\Models\StockLedger;
 use App\Services\MilkRateCalculator;
+use App\Services\InventoryService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -52,7 +55,6 @@ class Form extends Component
             $this->milkIntakeId = $record->id;
             $this->fill($record->only([
                 'center_id',
-                'date',
                 'shift',
                 'milk_type',
                 'qty_ltr',
@@ -66,6 +68,7 @@ class Form extends Component
                 'kg_snf',
                 'rate_status',
             ]));
+            $this->date = $record->date ? $record->date->toDateString() : null;
 
             $this->keepManualRate = $record->rate_status === MilkIntake::STATUS_MANUAL;
             $this->refreshDerived();
@@ -87,7 +90,7 @@ class Form extends Component
         }
     }
 
-    public function save(MilkRateCalculator $calculator)
+    public function save(MilkRateCalculator $calculator, InventoryService $inventoryService)
     {
         $this->authorize($this->milkIntakeId ? 'milkintake.update' : 'milkintake.create');
         $data = $this->validate($this->rules(), [], [
@@ -129,14 +132,26 @@ class Form extends Component
             'rate_status' => $this->keepManualRate ? MilkIntake::STATUS_MANUAL : MilkIntake::STATUS_CALCULATED,
         ]);
 
-        if ($this->milkIntakeId) {
-            MilkIntake::where('id', $this->milkIntakeId)->update($payload);
-            session()->flash('success', 'Milk intake updated.');
-        } else {
-            $record = MilkIntake::create($payload);
-            $this->milkIntakeId = $record->id;
-            session()->flash('success', 'Milk intake saved.');
-        }
+        DB::transaction(function () use ($payload, $inventoryService) {
+            if ($this->milkIntakeId) {
+                $record = MilkIntake::findOrFail($this->milkIntakeId);
+
+                if ($record->is_locked) {
+                    abort(403, 'Milk intake is locked and cannot be edited.');
+                }
+
+                $record->update($payload);
+                $inventoryService->reverseReference(MilkIntake::class, $record->id, 'Milk intake updated - reversal');
+                $record->refresh();
+                $this->postLedger($inventoryService, $record);
+                session()->flash('success', 'Milk intake updated.');
+            } else {
+                $record = MilkIntake::create($payload);
+                $this->milkIntakeId = $record->id;
+                $this->postLedger($inventoryService, $record);
+                session()->flash('success', 'Milk intake saved.');
+            }
+        });
 
         return redirect()->route('milk-intakes.view');
     }
@@ -204,5 +219,21 @@ class Form extends Component
             'fat_pct' => ['required', 'numeric', 'between:0,99.99'],
             'snf_pct' => ['required', 'numeric', 'between:0,99.99'],
         ];
+    }
+
+    private function postLedger(InventoryService $inventoryService, MilkIntake $intake): void
+    {
+        $product = $inventoryService->getMilkProduct($intake->milk_type);
+        $dateString = $intake->date instanceof \Illuminate\Support\Carbon
+            ? $intake->date->toDateString()
+            : (string) $intake->date;
+        $timestamp = $dateString.' '.($intake->shift === MilkIntake::SHIFT_EVENING ? '18:00:00' : '06:00:00');
+
+        $inventoryService->postIn($product->id, (float) $intake->qty_ltr, StockLedger::TYPE_IN, [
+            'txn_datetime' => $timestamp,
+            'remarks' => 'Milk intake '.$intake->milk_type.' for center '.$intake->center_id,
+            'reference_type' => MilkIntake::class,
+            'reference_id' => $intake->id,
+        ]);
     }
 }

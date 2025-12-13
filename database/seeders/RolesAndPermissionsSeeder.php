@@ -35,6 +35,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'milkintake.apply_ratechart',
             'milkintake.lock',
             'milkintake.unlock',
+            'product.view',
+            'product.create',
+            'product.update',
+            'product.delete',
+            'inventory.view',
+            'inventory.adjust',
+            'inventory.transfer',
         ];
 
         foreach ($permissions as $permission) {
@@ -51,6 +58,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'ratechart.view',
             'milkintake.view',
             'milkintake.create',
+            'inventory.view',
+            'inventory.transfer',
         ]);
 
         // Ensure registration can attach the Accountant role without errors
@@ -67,6 +76,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'milkintake.rate.override',
             'milkintake.apply_ratechart',
             'milkintake.lock',
+            'inventory.view',
         ]);
 
         $defaultUser = User::first();

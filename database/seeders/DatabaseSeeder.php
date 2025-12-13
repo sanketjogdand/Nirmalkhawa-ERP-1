@@ -23,7 +23,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             RegionSeeder::class,
+            UomSeeder::class,
+            ProductSeeder::class,
             // add any other seeders here
-     ]);
+        ]);
     }
 }

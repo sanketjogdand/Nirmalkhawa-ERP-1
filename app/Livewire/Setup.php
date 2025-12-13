@@ -16,6 +16,9 @@ class Setup extends Component
     public $pm_name = '';
     public $pm_edit_id = null;
 
+    public $uom_name = '';
+    public $uom_edit_id = null;
+
     public $ca_name = '';
     public $ca_edit_id = null;
 
@@ -32,6 +35,36 @@ class Setup extends Component
     public $village_state_id = null;
     public $village_district_id = null;
     public $village_taluka_id = null;
+
+    // ------- UOMs -------
+    public function saveUom(): void
+    {
+        $this->validate([
+            'uom_name' => 'required|string|max:50|unique:uoms,name',
+        ]);
+
+        DB::table('uoms')->insert([
+            'name' => trim($this->uom_name),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->dispatch('toast', type: 'success', message: 'UOM added.');
+        $this->resetUom();
+    }
+
+    public function deleteUom(int $id): void
+    {
+        DB::table('uoms')->where('id', $id)->delete();
+        $this->dispatch('toast', type: 'success', message: 'UOM deleted.');
+        $this->resetUom();
+    }
+
+    private function resetUom(): void
+    {
+        $this->uom_name = '';
+        $this->uom_edit_id = null;
+    }
 
     // ------- Payment Modes -------
     public function savePaymentMode()
@@ -296,10 +329,11 @@ class Setup extends Component
 
     public function render()
     {
-        $paymentModes = DB::table('payment_modes')->orderBy('name')->paginate(5, pageName: 'pm');
-        $companyAccounts = DB::table('company_accounts')->orderBy('name')->paginate(5, pageName: 'ca');
-        $transactionTypes = DB::table('transaction_types')->orderBy('name')->paginate(5, pageName: 'tt');
+        // $paymentModes = DB::table('payment_modes')->orderBy('name')->paginate(5, pageName: 'pm');
+        // $companyAccounts = DB::table('company_accounts')->orderBy('name')->paginate(5, pageName: 'ca');
+        // $transactionTypes = DB::table('transaction_types')->orderBy('name')->paginate(5, pageName: 'tt');
 
+        $uoms = DB::table('uoms')->orderBy('name')->paginate(10, pageName: 'uom');
         $states = DB::table('states')->orderBy('name')->paginate(10, pageName: 'state');
         $districtQuery = DB::table('districts')
             ->join('states', 'districts.state_id', '=', 'states.id')
@@ -364,9 +398,9 @@ class Setup extends Component
             : [];
 
         return view('livewire.setup',  compact(
-            'paymentModes',
-            'companyAccounts',
-            'transactionTypes',
+            // 'paymentModes',
+            // 'companyAccounts',
+            // 'transactionTypes',
             'states',
             'districts',
             'talukas',
@@ -374,7 +408,8 @@ class Setup extends Component
             'stateOptions',
             'districtOptions',
             'villageDistrictOptions',
-            'villageTalukaOptions'
+            'villageTalukaOptions',
+            'uoms'
         ))->with(['title_name' => $this->title ?? "KCB Industries Pvt. Ltd."]);
     }
 

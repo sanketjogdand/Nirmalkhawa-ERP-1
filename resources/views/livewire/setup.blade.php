@@ -1,6 +1,6 @@
 <div class="product-container">
     @php View::share('title_name', $title_name); @endphp
-    <div style="border-radius: 4px; padding:1rem;">
+    {{--<div style="border-radius: 4px; padding:1rem;">
         <h2 class="page-heading">Payment Modes</h2>
         <form wire:submit.prevent="savePaymentMode">
             <div class="form-grid">
@@ -111,8 +111,44 @@
             </table>
         </div>
         <div class="pagination-wrapper">{{ $transactionTypes->links() }}</div>
-    </div>
+    </div>--}}
 
+
+
+    <div style="border-radius: 4px; padding:1rem;">
+        <h2 class="page-heading">Units of Measure</h2>
+        <form wire:submit.prevent="saveUom">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" wire:model="uom_name" class="input-field" required/>
+                </div>
+                @error('uom_name') <div class="muted" style="color:#fecaca">{{ $message }}</div> @enderror
+                <div style="margin-top: 1.5rem;">
+                    <button type="submit" class="btn-submit">Save</button>
+                </div>
+            </div>
+        </form>
+        <div class="table-wrapper mt-4">
+            <table class="product-table hover-highlight">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Name</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach($uoms as $uom)
+                    <tr>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $uom->name }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700"><button class="btn-danger" wire:click="deleteUom('{{ $uom->id }}')">Delete</button></td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination-wrapper">{{ $uoms->links() }}</div>
+    </div>
 
 
     <div style="border-radius: 4px; padding:1rem;">

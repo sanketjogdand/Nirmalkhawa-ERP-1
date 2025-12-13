@@ -162,6 +162,11 @@
                                     @php $actions[] = '<button type="button" class="action-link" wire:click="confirmUnlock('.$row->id.')" style="border:none; background:transparent; padding:0;">Unlock</button>'; @endphp
                                 @endif
                             @endcan
+                            @can('milkintake.delete')
+                                @if(! $row->is_locked)
+                                    @php $actions[] = '<button type="button" class="action-link" wire:click="confirmDelete('.$row->id.')" style="border:none; background:transparent; padding:0;">Delete</button>'; @endphp
+                                @endif
+                            @endcan
 
                             <span style="display:inline-flex; align-items:center; gap:8px; white-space:nowrap;">
                                 @foreach($actions as $index => $action)
@@ -247,8 +252,24 @@
         </div>
     @endif
 
+    @if($showDeleteModal)
+        <div style="position:fixed; inset:0; background:rgba(0,0,0,0.65); display:flex; align-items:center; justify-content:center; z-index:1000;">
+            <div style="background:#111827; color:#e5e7eb; padding:20px; border-radius:12px; max-width:440px; width:90%; border:1px solid #374151;">
+                <h3 style="margin-top:0; font-size:18px;">Delete intake?</h3>
+                <p style="margin:8px 0;">This will create a reversal entry in inventory.</p>
+                <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:16px;">
+                    <button type="button" class="btn-primary" style="background:#6b7280;" wire:click="$set('showDeleteModal', false)">Cancel</button>
+                    <button type="button" class="btn-danger" wire:click="deleteConfirmed">Delete</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if (session('success'))
         <div class="toastr success">{{ session('success') }}</div>
+    @endif
+    @if (session('danger'))
+        <div class="toastr danger">{{ session('danger') }}</div>
     @endif
 
     @if (session('info'))

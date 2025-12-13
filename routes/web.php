@@ -8,10 +8,17 @@ use App\Livewire\Center\Show as CenterShow;
 use App\Livewire\Center\View as CenterView;
 use App\Livewire\MilkIntake\Form as MilkIntakeForm;
 use App\Livewire\MilkIntake\View as MilkIntakeView;
+use App\Livewire\Product\Form as ProductForm;
+use App\Livewire\Product\View as ProductView;
+use App\Livewire\Inventory\StockAdjustment as InventoryStockAdjustment;
+use App\Livewire\Inventory\StockLedger as InventoryStockLedger;
+use App\Livewire\Inventory\StockSummary as InventoryStockSummary;
+use App\Livewire\Inventory\TransferToMix as InventoryTransferToMix;
 use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
 use App\Livewire\RateChart\View as RateChartView;
+use App\Livewire\Setup;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -65,6 +72,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereNumber('milkIntake')
         ->name('milk-intakes.edit');
 
+    Route::middleware('permission:product.view')->group(function () {
+        Route::get('products', ProductView::class)->name('products.view');
+    });
+
+    Route::get('products/create', ProductForm::class)
+        ->middleware('permission:product.create')
+        ->name('products.create');
+
+    Route::get('products/{product}/edit', ProductForm::class)
+        ->middleware('permission:product.update')
+        ->whereNumber('product')
+        ->name('products.edit');
+
+    Route::middleware('permission:inventory.view')->group(function () {
+        Route::get('inventory/stock-summary', InventoryStockSummary::class)->name('inventory.stock-summary');
+        Route::get('inventory/stock-ledger', InventoryStockLedger::class)->name('inventory.stock-ledger');
+    });
+
+    Route::get('inventory/stock-adjustments', InventoryStockAdjustment::class)
+        ->middleware('permission:inventory.adjust')
+        ->name('inventory.stock-adjustments');
+
+    Route::get('inventory/transfer-to-mix', InventoryTransferToMix::class)
+        ->middleware('permission:inventory.transfer')
+        ->name('inventory.transfer-to-mix');
+
+    Route::get('/setup', Setup::class)->name('setup');
     Route::get('settings/profile', Profile::class)->name('settings.profile');
     Route::get('settings/password', Password::class)->name('settings.password');
     Route::get('settings/appearance', Appearance::class)->name('settings.appearance');

@@ -4,6 +4,7 @@ namespace App\Livewire\MilkIntake;
 
 use App\Models\Center;
 use App\Models\MilkIntake;
+use App\Services\InventoryService;
 use App\Services\MilkRateCalculator;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Collection;
@@ -40,6 +41,8 @@ class View extends Component
     public $override_reason;
 
     public Collection $centers;
+    public bool $showDeleteModal = false;
+    public ?int $pendingDeleteId = null;
 
     public function mount(): void
     {
@@ -303,6 +306,48 @@ class View extends Component
         $this->override_rate_per_ltr = null;
         $this->override_reason = null;
         $this->showOverrideModal = false;
+    }
+
+    public function confirmDelete(int $id): void
+    {
+        $this->authorize('milkintake.delete');
+        $intake = MilkIntake::findOrFail($id);
+
+        if ($intake->is_locked) {
+            session()->flash('danger', 'Unlock the intake before deleting.');
+            return;
+        }
+
+        $this->pendingDeleteId = $id;
+        $this->showDeleteModal = true;
+    }
+
+    public function deleteConfirmed(InventoryService $inventoryService): void
+    {
+        $this->authorize('milkintake.delete');
+
+        if (! $this->pendingDeleteId) {
+            $this->showDeleteModal = false;
+            return;
+        }
+
+        $intake = MilkIntake::findOrFail($this->pendingDeleteId);
+
+        if ($intake->is_locked) {
+            session()->flash('danger', 'Unlock the intake before deleting.');
+            $this->showDeleteModal = false;
+            $this->pendingDeleteId = null;
+            return;
+        }
+
+        $inventoryService->reverseReference(MilkIntake::class, $intake->id, 'Milk intake deleted - reversal');
+        $intake->delete();
+
+        $this->showDeleteModal = false;
+        $this->pendingDeleteId = null;
+        $this->selected = [];
+
+        session()->flash('success', 'Milk intake deleted.');
     }
 
     private function baseQuery()
