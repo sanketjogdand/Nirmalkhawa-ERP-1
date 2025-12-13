@@ -6,6 +6,8 @@ use App\Livewire\Settings\Profile;
 use App\Livewire\Center\Form as CenterForm;
 use App\Livewire\Center\Show as CenterShow;
 use App\Livewire\Center\View as CenterView;
+use App\Livewire\MilkIntake\Form as MilkIntakeForm;
+use App\Livewire\MilkIntake\View as MilkIntakeView;
 use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
@@ -49,6 +51,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:center.update')
         ->whereNumber('center')
         ->name('centers.edit');
+
+    Route::middleware('permission:milkintake.view')->group(function () {
+        Route::get('milk-intakes', MilkIntakeView::class)->name('milk-intakes.view');
+    });
+
+    Route::get('milk-intakes/create', MilkIntakeForm::class)
+        ->middleware('permission:milkintake.create')
+        ->name('milk-intakes.create');
+
+    Route::get('milk-intakes/{milkIntake}/edit', MilkIntakeForm::class)
+        ->middleware('permission:milkintake.update')
+        ->whereNumber('milkIntake')
+        ->name('milk-intakes.edit');
 
     Route::get('settings/profile', Profile::class)->name('settings.profile');
     Route::get('settings/password', Password::class)->name('settings.password');

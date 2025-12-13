@@ -417,6 +417,11 @@
                     <flux:navlist.item :href="route('rate-charts.view')" :current="request()->routeIs('rate-charts.*')" wire:navigate>{{ __('Rate Charts') }}</flux:navlist.item>
                 </flux:navlist.group>
             @endcan
+            @can('milkintake.view')
+                <flux:navlist.group expandable :heading="__('Milk Intake')" class="lg:grid" :expanded="false">
+                    <flux:navlist.item :href="route('milk-intakes.view')" :current="request()->routeIs('milk-intakes.*')" wire:navigate>{{ __('Milk Intake') }}</flux:navlist.item>
+                </flux:navlist.group>
+            @endcan
 
             <flux:spacer />
             <!-- <flux:navlist variant="outline">

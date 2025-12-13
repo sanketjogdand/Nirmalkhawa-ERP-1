@@ -87,16 +87,24 @@
                         </td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $chart->is_active ? 'Active' : 'Inactive' }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $chart->active_assignments_count }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700" style="white-space:nowrap; display:flex; gap:10px; flex-wrap:wrap;">
-                            <a href="{{ route('rate-charts.show', $chart->id) }}" class="action-link" wire:navigate>View / Manage</a>
+                        <td class="px-4 py-2 border dark:border-zinc-700" style="white-space:nowrap;">
+                            @php $actions = []; @endphp
+                            @php $actions[] = '<a href="'.route('rate-charts.show', $chart->id).'" class="action-link" wire:navigate>View / Manage</a>'; @endphp
                             @can('ratechart.update')
-                                <a href="{{ route('rate-charts.edit', $chart->id) }}" class="action-link" wire:navigate>Edit</a>
+                                @php $actions[] = '<a href="'.route('rate-charts.edit', $chart->id).'" class="action-link" wire:navigate>Edit</a>'; @endphp
                             @endcan
                             @can('ratechart.update')
-                                <button type="button" class="action-link" wire:click="toggleStatus({{ $chart->id }})" style="border:none; background:transparent; padding:0;">
-                                    {{ $chart->is_active ? 'Deactivate' : 'Activate' }}
-                                </button>
+                                @php $actions[] = '<button type="button" class="action-link" wire:click="toggleStatus('.$chart->id.')" style="border:none; background:transparent; padding:0;">'.($chart->is_active ? 'Deactivate' : 'Activate').'</button>'; @endphp
                             @endcan
+
+                            <span style="display:inline-flex; align-items:center; gap:8px; white-space:nowrap;">
+                                @foreach($actions as $index => $action)
+                                    {!! $action !!}
+                                    @if($index < count($actions) - 1)
+                                        <span aria-hidden="true">|</span>
+                                    @endif
+                                @endforeach
+                            </span>
                         </td>
                     </tr>
                 @empty

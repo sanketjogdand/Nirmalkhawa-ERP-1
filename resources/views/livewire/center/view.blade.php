@@ -78,16 +78,23 @@
                         </td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $row->status }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $row->created_at?->format('d M Y') }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700" style="white-space: nowrap; display:flex; gap:10px;">
-                            <a href="{{ route('centers.show', $row->id) }}" class="action-link" wire:navigate>View</a>
+                        <td class="px-4 py-2 border dark:border-zinc-700" style="white-space:nowrap;">
+                            @php $actions = []; @endphp
+                            @php $actions[] = '<a href="'.route('centers.show', $row->id).'" class="action-link" wire:navigate>View</a>'; @endphp
                             @can('center.update')
-                                <a href="{{ route('centers.edit', $row->id) }}" class="action-link" wire:navigate>Edit</a>
+                                @php $actions[] = '<a href="'.route('centers.edit', $row->id).'" class="action-link" wire:navigate>Edit</a>'; @endphp
                             @endcan
                             @can('center.delete')
-                                <button type="button" class="action-link" wire:click="toggleStatus({{ $row->id }})" style="border:none; background:transparent; padding:0;">
-                                    {{ $row->status === 'Active' ? 'Deactivate' : 'Activate' }}
-                                </button>
+                                @php $actions[] = '<button type="button" class="action-link" wire:click="toggleStatus('.$row->id.')" style="border:none; background:transparent; padding:0;">'.($row->status === 'Active' ? 'Deactivate' : 'Activate').'</button>'; @endphp
                             @endcan
+                            <span style="display:inline-flex; align-items:center; gap:8px; white-space:nowrap;">
+                                @foreach($actions as $index => $action)
+                                    {!! $action !!}
+                                    @if($index < count($actions) - 1)
+                                        <span aria-hidden="true">|</span>
+                                    @endif
+                                @endforeach
+                            </span>
                         </td>
                     </tr>
                 @empty
