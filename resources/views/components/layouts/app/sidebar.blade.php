@@ -427,6 +427,9 @@
                     @can('product.view')
                         <flux:navlist.item :href="route('products.view')" :current="request()->routeIs('products.*')" wire:navigate>{{ __('Products') }}</flux:navlist.item>
                     @endcan
+                    @can('recipe.view')
+                        <flux:navlist.item :href="route('recipes.view')" :current="request()->routeIs('recipes.*')" wire:navigate>{{ __('Recipes') }}</flux:navlist.item>
+                    @endcan
                     @can('inventory.view')
                         <flux:navlist.item :href="route('inventory.stock-summary')" :current="request()->routeIs('inventory.stock-summary')" wire:navigate>{{ __('Stock Summary') }}</flux:navlist.item>
                         <flux:navlist.item :href="route('inventory.stock-ledger')" :current="request()->routeIs('inventory.stock-ledger')" wire:navigate>{{ __('Stock Ledger') }}</flux:navlist.item>

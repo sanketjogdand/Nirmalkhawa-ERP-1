@@ -39,6 +39,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'product.create',
             'product.update',
             'product.delete',
+            'recipe.view',
+            'recipe.create',
+            'recipe.update',
+            'recipe.delete',
+            'recipe.activate',
+            'recipe.override_output_product',
             'inventory.view',
             'inventory.adjust',
             'inventory.transfer',
@@ -77,6 +83,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'milkintake.apply_ratechart',
             'milkintake.lock',
             'inventory.view',
+        ]);
+
+        $productionSupervisorRole = Role::firstOrCreate(['name' => 'Production Supervisor']);
+        $productionSupervisorRole->syncPermissions([
+            'recipe.view',
+            'recipe.create',
+            'recipe.update',
         ]);
 
         $defaultUser = User::first();

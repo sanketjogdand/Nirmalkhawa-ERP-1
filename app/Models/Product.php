@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Product extends Model
 {
@@ -38,5 +39,15 @@ class Product extends Model
     public function ledgers(): HasMany
     {
         return $this->hasMany(StockLedger::class);
+    }
+
+    public function recipes(): HasMany
+    {
+        return $this->hasMany(Recipe::class, 'output_product_id');
+    }
+
+    public function recipeItems(): HasManyThrough
+    {
+        return $this->hasManyThrough(RecipeItem::class, Recipe::class, 'output_product_id', 'recipe_id', 'id', 'id');
     }
 }

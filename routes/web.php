@@ -18,6 +18,9 @@ use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
 use App\Livewire\RateChart\View as RateChartView;
+use App\Livewire\Recipe\Form as RecipeForm;
+use App\Livewire\Recipe\Show as RecipeShow;
+use App\Livewire\Recipe\View as RecipeView;
 use App\Livewire\Setup;
 use Illuminate\Support\Facades\Route;
 
@@ -84,6 +87,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:product.update')
         ->whereNumber('product')
         ->name('products.edit');
+
+    Route::middleware('permission:recipe.view')->group(function () {
+        Route::get('recipes', RecipeView::class)->name('recipes.view');
+        Route::get('recipes/{recipe}', RecipeShow::class)
+            ->middleware('permission:recipe.view')
+            ->whereNumber('recipe')
+            ->name('recipes.show');
+    });
+
+    Route::get('recipes/create', RecipeForm::class)
+        ->middleware('permission:recipe.create')
+        ->name('recipes.create');
+
+    Route::get('recipes/{recipe}/edit', RecipeForm::class)
+        ->middleware('permission:recipe.update')
+        ->whereNumber('recipe')
+        ->name('recipes.edit');
 
     Route::middleware('permission:inventory.view')->group(function () {
         Route::get('inventory/stock-summary', InventoryStockSummary::class)->name('inventory.stock-summary');
