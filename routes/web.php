@@ -14,6 +14,9 @@ use App\Livewire\Inventory\StockAdjustment as InventoryStockAdjustment;
 use App\Livewire\Inventory\StockLedger as InventoryStockLedger;
 use App\Livewire\Inventory\StockSummary as InventoryStockSummary;
 use App\Livewire\Inventory\TransferToMix as InventoryTransferToMix;
+use App\Livewire\Production\Form as ProductionForm;
+use App\Livewire\Production\Show as ProductionShow;
+use App\Livewire\Production\View as ProductionView;
 use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
@@ -117,6 +120,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('inventory/transfer-to-mix', InventoryTransferToMix::class)
         ->middleware('permission:inventory.transfer')
         ->name('inventory.transfer-to-mix');
+
+    Route::middleware('permission:production.view')->group(function () {
+        Route::get('productions', ProductionView::class)->name('productions.view');
+    });
+
+    Route::get('productions/create', ProductionForm::class)
+        ->middleware('permission:production.create')
+        ->name('productions.create');
+
+    Route::get('productions/{production}', ProductionShow::class)
+        ->middleware('permission:production.view')
+        ->whereNumber('production')
+        ->name('productions.show');
+
+    Route::get('productions/{production}/edit', ProductionForm::class)
+        ->middleware('permission:production.update')
+        ->whereNumber('production')
+        ->name('productions.edit');
 
     Route::get('/setup', Setup::class)->name('setup');
     Route::get('settings/profile', Profile::class)->name('settings.profile');

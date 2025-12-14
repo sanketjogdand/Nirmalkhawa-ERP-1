@@ -106,6 +106,8 @@ class InventoryService
                     'rate' => $entry->rate,
                     'remarks' => $remarks,
                     'created_by' => auth()->id(),
+                    'reference_type' => $entry->reference_type,
+                    'reference_id' => $entry->reference_id,
                 ]
             );
         }

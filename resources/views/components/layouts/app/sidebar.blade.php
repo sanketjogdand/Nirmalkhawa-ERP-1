@@ -434,6 +434,9 @@
                         <flux:navlist.item :href="route('inventory.stock-summary')" :current="request()->routeIs('inventory.stock-summary')" wire:navigate>{{ __('Stock Summary') }}</flux:navlist.item>
                         <flux:navlist.item :href="route('inventory.stock-ledger')" :current="request()->routeIs('inventory.stock-ledger')" wire:navigate>{{ __('Stock Ledger') }}</flux:navlist.item>
                     @endcan
+                    @can('production.view')
+                        <flux:navlist.item :href="route('productions.view')" :current="request()->routeIs('productions.*')" wire:navigate>{{ __('Production') }}</flux:navlist.item>
+                    @endcan
                     @can('inventory.adjust')
                         <flux:navlist.item :href="route('inventory.stock-adjustments')" :current="request()->routeIs('inventory.stock-adjustments')" wire:navigate>{{ __('Stock Adjustments') }}</flux:navlist.item>
                     @endcan

@@ -48,6 +48,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'inventory.view',
             'inventory.adjust',
             'inventory.transfer',
+            'production.view',
+            'production.create',
+            'production.update',
+            'production.delete',
+            'production.lock',
+            'production.unlock',
         ];
 
         foreach ($permissions as $permission) {
@@ -90,6 +96,15 @@ class RolesAndPermissionsSeeder extends Seeder
             'recipe.view',
             'recipe.create',
             'recipe.update',
+            'production.view',
+            'production.create',
+            'production.update',
+            'production.lock',
+        ]);
+
+        $accountantRole->givePermissionTo([
+            'production.view',
+            'production.lock',
         ]);
 
         $defaultUser = User::first();
