@@ -25,6 +25,8 @@
                 <option value="{{ \App\Models\StockLedger::TYPE_PRODUCTION_IN }}">Production In</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_PRODUCTION_OUT }}">Production Out</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_TRANSFER }}">Transfer</option>
+                <option value="{{ \App\Models\StockLedger::TYPE_PACKING_OUT }}">Packing Out</option>
+                <option value="{{ \App\Models\StockLedger::TYPE_UNPACKING_IN }}">Unpacking In</option>
             </select>
         </div>
         <div class="form-group">

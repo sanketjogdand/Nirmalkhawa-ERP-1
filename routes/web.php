@@ -14,6 +14,11 @@ use App\Livewire\Inventory\StockAdjustment as InventoryStockAdjustment;
 use App\Livewire\Inventory\StockLedger as InventoryStockLedger;
 use App\Livewire\Inventory\StockSummary as InventoryStockSummary;
 use App\Livewire\Inventory\TransferToMix as InventoryTransferToMix;
+use App\Livewire\Packing\History as PackHistory;
+use App\Livewire\Packing\InventorySummary as PackInventory;
+use App\Livewire\Packing\PackSizes;
+use App\Livewire\Packing\PackingForm;
+use App\Livewire\Packing\UnpackingForm;
 use App\Livewire\Production\Form as ProductionForm;
 use App\Livewire\Production\Show as ProductionShow;
 use App\Livewire\Production\View as ProductionView;
@@ -120,6 +125,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('inventory/transfer-to-mix', InventoryTransferToMix::class)
         ->middleware('permission:inventory.transfer')
         ->name('inventory.transfer-to-mix');
+
+    Route::get('pack-sizes', PackSizes::class)
+        ->middleware('permission:packsize.view')
+        ->name('pack-sizes');
+
+    Route::get('packing', PackingForm::class)
+        ->middleware('permission:packing.create')
+        ->name('packing');
+
+    Route::get('unpacking', UnpackingForm::class)
+        ->middleware('permission:unpacking.create')
+        ->name('unpacking');
+
+    Route::get('pack-inventory', PackInventory::class)
+        ->middleware('permission:packinventory.view')
+        ->name('pack-inventory');
+
+    Route::get('pack-history', PackHistory::class)
+        ->middleware('permission:packinventory.view')
+        ->name('pack-history');
 
     Route::middleware('permission:production.view')->group(function () {
         Route::get('productions', ProductionView::class)->name('productions.view');

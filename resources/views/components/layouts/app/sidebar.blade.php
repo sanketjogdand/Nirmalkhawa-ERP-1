@@ -422,20 +422,22 @@
                     <flux:navlist.item :href="route('milk-intakes.view')" :current="request()->routeIs('milk-intakes.*')" wire:navigate>{{ __('Milk Intake') }}</flux:navlist.item>
                 </flux:navlist.group>
             @endcan
-            @canany(['product.view', 'inventory.view', 'inventory.adjust', 'inventory.transfer'])
-                <flux:navlist.group expandable :heading="__('Products & Inventory')" class="lg:grid" :expanded="false">
+            @canany(['product.view', 'recipe.view'])
+                <flux:navlist.group expandable :heading="__('Products')" class="lg:grid" :expanded="false">
                     @can('product.view')
                         <flux:navlist.item :href="route('products.view')" :current="request()->routeIs('products.*')" wire:navigate>{{ __('Products') }}</flux:navlist.item>
                     @endcan
                     @can('recipe.view')
                         <flux:navlist.item :href="route('recipes.view')" :current="request()->routeIs('recipes.*')" wire:navigate>{{ __('Recipes') }}</flux:navlist.item>
                     @endcan
+                </flux:navlist.group>
+            @endcanany
+
+            @canany(['inventory.view', 'inventory.adjust', 'inventory.transfer'])
+                <flux:navlist.group expandable :heading="__('Inventory')" class="lg:grid" :expanded="false">
                     @can('inventory.view')
                         <flux:navlist.item :href="route('inventory.stock-summary')" :current="request()->routeIs('inventory.stock-summary')" wire:navigate>{{ __('Stock Summary') }}</flux:navlist.item>
                         <flux:navlist.item :href="route('inventory.stock-ledger')" :current="request()->routeIs('inventory.stock-ledger')" wire:navigate>{{ __('Stock Ledger') }}</flux:navlist.item>
-                    @endcan
-                    @can('production.view')
-                        <flux:navlist.item :href="route('productions.view')" :current="request()->routeIs('productions.*')" wire:navigate>{{ __('Production') }}</flux:navlist.item>
                     @endcan
                     @can('inventory.adjust')
                         <flux:navlist.item :href="route('inventory.stock-adjustments')" :current="request()->routeIs('inventory.stock-adjustments')" wire:navigate>{{ __('Stock Adjustments') }}</flux:navlist.item>
@@ -445,6 +447,30 @@
                     @endcan
                 </flux:navlist.group>
             @endcanany
+
+            @canany(['packsize.view', 'packing.create', 'unpacking.create', 'packinventory.view'])
+                <flux:navlist.group expandable :heading="__('Packing')" class="lg:grid" :expanded="false">
+                    @can('packsize.view')
+                        <flux:navlist.item :href="route('pack-sizes')" :current="request()->routeIs('pack-sizes')" wire:navigate>{{ __('Pack Sizes') }}</flux:navlist.item>
+                    @endcan
+                    @can('packing.create')
+                        <flux:navlist.item :href="route('packing')" :current="request()->routeIs('packing')" wire:navigate>{{ __('Packing') }}</flux:navlist.item>
+                    @endcan
+                    @can('unpacking.create')
+                        <flux:navlist.item :href="route('unpacking')" :current="request()->routeIs('unpacking')" wire:navigate>{{ __('Unpacking') }}</flux:navlist.item>
+                    @endcan
+                    @can('packinventory.view')
+                        <flux:navlist.item :href="route('pack-inventory')" :current="request()->routeIs('pack-inventory')" wire:navigate>{{ __('Pack Inventory') }}</flux:navlist.item>
+                        <flux:navlist.item :href="route('pack-history')" :current="request()->routeIs('pack-history')" wire:navigate>{{ __('Pack History') }}</flux:navlist.item>
+                    @endcan
+                </flux:navlist.group>
+            @endcanany
+
+            @can('production.view')
+                <flux:navlist.group expandable :heading="__('Production')" class="lg:grid" :expanded="false">
+                    <flux:navlist.item :href="route('productions.view')" :current="request()->routeIs('productions.*')" wire:navigate>{{ __('Production') }}</flux:navlist.item>
+                </flux:navlist.group>
+            @endcan
 
             <flux:spacer />
             <!-- <flux:navlist variant="outline">

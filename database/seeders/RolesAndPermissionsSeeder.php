@@ -54,6 +54,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'production.delete',
             'production.lock',
             'production.unlock',
+            'packsize.view',
+            'packsize.create',
+            'packsize.update',
+            'packsize.delete',
+            'packing.create',
+            'unpacking.create',
+            'packinventory.view',
         ];
 
         foreach ($permissions as $permission) {
@@ -100,6 +107,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'production.create',
             'production.update',
             'production.lock',
+        ]);
+
+        $storeKeeperRole = Role::firstOrCreate(['name' => 'Storekeeper']);
+        $storeKeeperRole->syncPermissions([
+            'packing.create',
+            'unpacking.create',
+            'packinventory.view',
+            'packsize.view',
         ]);
 
         $accountantRole->givePermissionTo([

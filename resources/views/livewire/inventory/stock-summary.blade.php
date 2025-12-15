@@ -60,24 +60,61 @@
                     <th class="px-4 py-2 border dark:border-zinc-700">Product</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Code</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">UOM</th>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Current Stock</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Total Weight</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Pack Inventory</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Category</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Status</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($products as $product)
+                    @php
+                        $sizes = $packSizes->get($product->id) ?? collect();
+                        $inventory = $packInventory->get($product->id) ?? collect();
+                        $packedTotal = $sizes->sum(function ($size) use ($inventory) {
+                            $invRow = $inventory->firstWhere('pack_size_id', $size->id);
+                            $count = $invRow ? (int) $invRow->pack_count : 0;
+
+                            return (float) $size->pack_qty * $count;
+                        });
+                        $totalWeight = $product->stock_balance + $packedTotal;
+                    @endphp
                     <tr>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $product->name }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $product->code }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $product->uom }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700" style="font-weight:600;">{{ number_format($product->stock_balance, 3) }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700" style="font-weight:600;">{{ number_format($totalWeight, 3) }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <div style="font-size:13px; font-weight:700;">Bulk Stock: {{ number_format($product->stock_balance, 3) }} {{ $product->uom }}</div>
+                                @if($sizes->isEmpty())
+                                    <span style="color:gray;">No pack sizes</span>
+                                @else
+                                    @foreach($sizes as $size)
+                                        @php
+                                            $invRow = $inventory->firstWhere('pack_size_id', $size->id);
+                                            $count = $invRow ? (int) $invRow->pack_count : 0;
+                                            $lineTotal = (float) $size->pack_qty * $count;
+                                        @endphp
+                                        <div style="font-size:13px;">
+                                            {{ number_format($size->pack_qty, 3) }} {{ $size->pack_uom }}:
+                                            <strong>{{ $count }}</strong> packs
+                                            <span style="color:gray;">({{ number_format($lineTotal, 3) }})</span>
+                                        </div>
+                                    @endforeach
+                                    <div style="font-size:13px; font-weight:700;">
+                                        Total Packed: {{ number_format($packedTotal, 3) }} {{ $product->uom }}
+                                        <span style="color:gray;">• Bulk+Pack: {{ number_format($product->stock_balance + $packedTotal, 3) }} {{ $product->uom }}</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $product->category }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $product->is_active ? 'Active' : 'Inactive' }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No records found.</td>
+                        <td colspan="7" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No records found.</td>
                     </tr>
                 @endforelse
             </tbody>

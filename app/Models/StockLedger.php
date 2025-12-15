@@ -17,6 +17,8 @@ class StockLedger extends Model
     public const TYPE_PRODUCTION_IN = 'PRODUCTION_IN';
     public const TYPE_PRODUCTION_OUT = 'PRODUCTION_OUT';
     public const TYPE_TRANSFER = 'TRANSFER';
+    public const TYPE_PACKING_OUT = 'PACKING_OUT';
+    public const TYPE_UNPACKING_IN = 'UNPACKING_IN';
 
     protected $fillable = [
         'product_id',

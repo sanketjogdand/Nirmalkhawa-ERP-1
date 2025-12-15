@@ -329,8 +329,8 @@ class Setup extends Component
 
     public function render()
     {
-        // $paymentModes = DB::table('payment_modes')->orderBy('name')->paginate(5, pageName: 'pm');
-        // $companyAccounts = DB::table('company_accounts')->orderBy('name')->paginate(5, pageName: 'ca');
+        $paymentModes = DB::table('payment_modes')->orderBy('name')->paginate(5, pageName: 'pm');
+        $companyAccounts = DB::table('company_accounts')->orderBy('name')->paginate(5, pageName: 'ca');
         // $transactionTypes = DB::table('transaction_types')->orderBy('name')->paginate(5, pageName: 'tt');
 
         $uoms = DB::table('uoms')->orderBy('name')->paginate(10, pageName: 'uom');
@@ -398,8 +398,8 @@ class Setup extends Component
             : [];
 
         return view('livewire.setup',  compact(
-            // 'paymentModes',
-            // 'companyAccounts',
+            'paymentModes',
+            'companyAccounts',
             // 'transactionTypes',
             'states',
             'districts',

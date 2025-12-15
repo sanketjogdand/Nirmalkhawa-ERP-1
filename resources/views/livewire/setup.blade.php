@@ -1,6 +1,6 @@
 <div class="product-container">
     @php View::share('title_name', $title_name); @endphp
-    {{--<div style="border-radius: 4px; padding:1rem;">
+    <div style="border-radius: 4px; padding:1rem;">
         <h2 class="page-heading">Payment Modes</h2>
         <form wire:submit.prevent="savePaymentMode">
             <div class="form-grid">
@@ -77,7 +77,7 @@
 
 
 
-    <div style="border-radius: 4px; padding:1rem;">
+    {{--<div style="border-radius: 4px; padding:1rem;">
         <h2 class="page-heading">Transaction Types</h2>
         <form wire:submit.prevent="savetransactionTypes">
             <div class="form-grid">

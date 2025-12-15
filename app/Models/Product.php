@@ -50,4 +50,24 @@ class Product extends Model
     {
         return $this->hasManyThrough(RecipeItem::class, Recipe::class, 'output_product_id', 'recipe_id', 'id', 'id');
     }
+
+    public function packSizes(): HasMany
+    {
+        return $this->hasMany(PackSize::class);
+    }
+
+    public function packInventories(): HasMany
+    {
+        return $this->hasMany(PackInventory::class);
+    }
+
+    public function packings(): HasMany
+    {
+        return $this->hasMany(Packing::class);
+    }
+
+    public function unpackings(): HasMany
+    {
+        return $this->hasMany(Unpacking::class);
+    }
 }
