@@ -61,6 +61,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'packing.create',
             'unpacking.create',
             'packinventory.view',
+            'customer.view',
+            'customer.create',
+            'customer.update',
+            'customer.delete',
         ];
 
         foreach ($permissions as $permission) {
@@ -96,6 +100,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'milkintake.apply_ratechart',
             'milkintake.lock',
             'inventory.view',
+            'customer.view',
+            'customer.create',
+            'customer.update',
         ]);
 
         $productionSupervisorRole = Role::firstOrCreate(['name' => 'Production Supervisor']);
