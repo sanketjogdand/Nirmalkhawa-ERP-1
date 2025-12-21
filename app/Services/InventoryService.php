@@ -12,6 +12,10 @@ class InventoryService
     public function getCurrentStock(int $productId): float
     {
         return (float) StockLedger::where('product_id', $productId)
+            ->whereNotIn('txn_type', [
+                StockLedger::TYPE_DISPATCH_PACK_OUT,
+                'DISPATCH_PACK', // legacy
+            ])
             ->selectRaw('COALESCE(SUM(CASE WHEN is_increase = 1 THEN qty ELSE -qty END), 0) as balance')
             ->value('balance');
     }

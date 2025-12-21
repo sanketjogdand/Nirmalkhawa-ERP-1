@@ -70,4 +70,9 @@ class Product extends Model
     {
         return $this->hasMany(Unpacking::class);
     }
+
+    public function dispatchLines(): HasMany
+    {
+        return $this->hasMany(DispatchLine::class);
+    }
 }

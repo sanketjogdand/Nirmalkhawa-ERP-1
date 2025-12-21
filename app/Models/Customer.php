@@ -68,4 +68,9 @@ class Customer extends Model
 
         return $this->hasMany($related);
     }
+
+    public function dispatchLines(): HasMany
+    {
+        return $this->hasMany(DispatchLine::class);
+    }
 }

@@ -488,6 +488,12 @@
                 </flux:navlist.group>
             @endcan
 
+            @canany(['dispatch.view', 'dispatch.create', 'dispatch.update'])
+                <flux:navlist.group expandable :heading="__('Dispatch')" class="lg:grid" :expanded="request()->routeIs('dispatches.*')">
+                    <flux:navlist.item :href="route('dispatches.view')" :current="request()->routeIs('dispatches.*')" wire:navigate>{{ __('Dispatch') }}</flux:navlist.item>
+                </flux:navlist.group>
+            @endcanany
+
             <flux:spacer />
             <!-- <flux:navlist variant="outline">
                 <flux:navlist.item icon="folder-git-2" href="https://github.com/sanketjogdand/Nirmal-Industries/" target="_blank">

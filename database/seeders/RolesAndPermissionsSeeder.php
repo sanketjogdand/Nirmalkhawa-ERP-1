@@ -65,6 +65,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'customer.create',
             'customer.update',
             'customer.delete',
+            'dispatch.view',
+            'dispatch.create',
+            'dispatch.update',
+            'dispatch.delete',
+            'dispatch.post',
+            'dispatch.lock',
+            'dispatch.unlock',
         ];
 
         foreach ($permissions as $permission) {
@@ -83,6 +90,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'milkintake.create',
             'inventory.view',
             'inventory.transfer',
+            'dispatch.view',
         ]);
 
         // Ensure registration can attach the Accountant role without errors
@@ -103,6 +111,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'customer.view',
             'customer.create',
             'customer.update',
+            'dispatch.view',
+            'dispatch.create',
+            'dispatch.update',
+            'dispatch.post',
+            'dispatch.lock',
         ]);
 
         $productionSupervisorRole = Role::firstOrCreate(['name' => 'Production Supervisor']);
@@ -114,6 +127,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'production.create',
             'production.update',
             'production.lock',
+            'dispatch.view',
         ]);
 
         $storeKeeperRole = Role::firstOrCreate(['name' => 'Storekeeper']);
@@ -122,6 +136,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'unpacking.create',
             'packinventory.view',
             'packsize.view',
+            'dispatch.view',
+            'dispatch.create',
+            'dispatch.update',
+            'dispatch.post',
         ]);
 
         $accountantRole->givePermissionTo([

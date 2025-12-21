@@ -42,4 +42,9 @@ class PackSize extends Model
     {
         return $this->hasMany(UnpackingItem::class);
     }
+
+    public function dispatchLines(): HasMany
+    {
+        return $this->hasMany(DispatchLine::class);
+    }
 }

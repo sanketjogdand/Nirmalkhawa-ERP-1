@@ -27,6 +27,10 @@
                 <option value="{{ \App\Models\StockLedger::TYPE_TRANSFER }}">Transfer</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_PACKING_OUT }}">Packing Out</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_UNPACKING_IN }}">Unpacking In</option>
+                <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_BULK_OUT }}">Dispatch Bulk Out</option>
+                <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_PACK_OUT }}">Dispatch Pack Out</option>
+                <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_BULK_DELETED }}">Dispatch Bulk Deleted</option>
+                <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_PACK_DELETED }}">Dispatch Pack Deleted</option>
             </select>
         </div>
         <div class="form-group">
@@ -69,7 +73,15 @@
                             {{ $entry->product?->name }}
                             <div style="font-size:12px; color:gray;">{{ $entry->product?->code }}</div>
                         </td>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->txn_type }}</td>
+                        @php
+                            $typeLabel = $entry->txn_type;
+                            if ($entry->txn_type === 'DISPATCH_OUT') {
+                                $typeLabel = 'DISPATCH_BULK_OUT';
+                            } elseif ($entry->txn_type === 'DISPATCH_PACK') {
+                                $typeLabel = 'DISPATCH_PACK_OUT';
+                            }
+                        @endphp
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $typeLabel }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700" style="font-weight:600; color: {{ $entry->is_increase ? '#16a34a' : '#dc2626' }};">
                             {{ $entry->is_increase ? '+' : '-' }}{{ number_format($entry->qty, 3) }}
                         </td>

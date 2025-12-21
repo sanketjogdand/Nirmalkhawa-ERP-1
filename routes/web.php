@@ -25,6 +25,9 @@ use App\Livewire\Packing\UnpackingForm;
 use App\Livewire\Production\Form as ProductionForm;
 use App\Livewire\Production\Show as ProductionShow;
 use App\Livewire\Production\View as ProductionView;
+use App\Livewire\Dispatch\View as DispatchView;
+use App\Livewire\Dispatch\Form as DispatchForm;
+use App\Livewire\Dispatch\Show as DispatchShow;
 use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
@@ -164,6 +167,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('pack-history', PackHistory::class)
         ->middleware('permission:packinventory.view')
         ->name('pack-history');
+
+    Route::get('dispatches/create', DispatchForm::class)
+        ->middleware('permission:dispatch.create')
+        ->name('dispatches.create');
+
+    Route::get('dispatches/{dispatch}/edit', DispatchForm::class)
+        ->middleware('permission:dispatch.update')
+        ->whereNumber('dispatch')
+        ->name('dispatches.edit');
+
+    Route::middleware('permission:dispatch.view')->group(function () {
+        Route::get('dispatches', DispatchView::class)->name('dispatches.view');
+        Route::get('dispatches/{dispatch}', DispatchShow::class)
+            ->middleware('permission:dispatch.view')
+            ->whereNumber('dispatch')
+            ->name('dispatches.show');
+    });
 
     Route::middleware('permission:production.view')->group(function () {
         Route::get('productions', ProductionView::class)->name('productions.view');
