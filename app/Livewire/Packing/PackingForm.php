@@ -117,7 +117,6 @@ class PackingForm extends Component
                 'date' => $data['date'],
                 'product_id' => (int) $data['product_id'],
                 'remarks' => $data['remarks'] ?? null,
-                'txn_datetime' => $data['date'].' 12:00:00',
             ], $data['lines'], $inventoryService);
 
             $this->availableBulk = $inventoryService->getCurrentStock((int) $data['product_id']);

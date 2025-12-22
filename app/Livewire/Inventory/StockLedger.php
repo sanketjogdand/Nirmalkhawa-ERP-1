@@ -49,6 +49,7 @@ class StockLedger extends Component
             ->when($this->fromDate, fn ($q) => $q->whereDate('txn_datetime', '>=', $this->fromDate))
             ->when($this->toDate, fn ($q) => $q->whereDate('txn_datetime', '<=', $this->toDate))
             ->orderByDesc('txn_datetime')
+            ->orderByDesc('id')
             ->paginate($this->perPage);
 
         return view('livewire.inventory.stock-ledger', [

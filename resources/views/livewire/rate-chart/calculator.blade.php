@@ -32,12 +32,12 @@
             </div>
             <div class="form-group">
                 <label for="fat">FAT<span style="color:red;">*</span></label>
-                <input id="fat" type="number" step="0.01" wire:model="fat" class="input-field" required>
+                <input id="fat" type="number" step="0.1" wire:model="fat" class="input-field" required>
                 @error('fat')<span style="color:red; font-size:12px;">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">
                 <label for="snf">SNF<span style="color:red;">*</span></label>
-                <input id="snf" type="number" step="0.01" wire:model="snf" class="input-field" required>
+                <input id="snf" type="number" step="0.1" wire:model="snf" class="input-field" required>
                 @error('snf')<span style="color:red; font-size:12px;">{{ $message }}</span>@enderror
             </div>
         </div>

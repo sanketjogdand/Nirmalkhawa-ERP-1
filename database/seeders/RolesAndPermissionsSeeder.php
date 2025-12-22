@@ -79,6 +79,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'dispatch.post',
             'dispatch.lock',
             'dispatch.unlock',
+            'salesinvoice.view',
+            'salesinvoice.create',
+            'salesinvoice.update',
+            'salesinvoice.delete',
+            'salesinvoice.post',
+            'salesinvoice.lock',
+            'salesinvoice.unlock',
         ];
 
         foreach ($permissions as $permission) {
@@ -123,6 +130,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'dispatch.update',
             'dispatch.post',
             'dispatch.lock',
+            'salesinvoice.view',
+            'salesinvoice.create',
+            'salesinvoice.update',
+            'salesinvoice.post',
+            'salesinvoice.lock',
         ]);
 
         $productionSupervisorRole = Role::firstOrCreate(['name' => 'Production Supervisor']);

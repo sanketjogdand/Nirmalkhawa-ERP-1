@@ -7,6 +7,7 @@ use App\Models\PackSize;
 use App\Models\Packing;
 use App\Models\StockLedger;
 use App\Models\Unpacking;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -63,12 +64,18 @@ class PackingService
                 $inventory->save();
             }
 
+            $txnTimestamp = $payload['txn_datetime'] ?? (
+                ! empty($payload['date'])
+                    ? Carbon::parse($payload['date'])->setTimeFromTimeString(now()->format('H:i:s'))
+                    : now()
+            );
+
             $inventoryService->postOut(
                 $productId,
                 $totalBulkQty,
                 StockLedger::TYPE_PACKING_OUT,
                 [
-                    'txn_datetime' => $payload['txn_datetime'] ?? ($payload['date'].' 12:00:00'),
+                    'txn_datetime' => $txnTimestamp,
                     'reference_type' => Packing::class,
                     'reference_id' => $packing->id,
                     'remarks' => $payload['remarks'] ?? 'Packing',
@@ -138,12 +145,18 @@ class PackingService
                 $inventory->save();
             }
 
+            $txnTimestamp = $payload['txn_datetime'] ?? (
+                ! empty($payload['date'])
+                    ? Carbon::parse($payload['date'])->setTimeFromTimeString(now()->format('H:i:s'))
+                    : now()
+            );
+
             $inventoryService->postIn(
                 $productId,
                 $totalBulkQty,
                 StockLedger::TYPE_UNPACKING_IN,
                 [
-                    'txn_datetime' => $payload['txn_datetime'] ?? ($payload['date'].' 12:00:00'),
+                    'txn_datetime' => $txnTimestamp,
                     'reference_type' => Unpacking::class,
                     'reference_id' => $unpacking->id,
                     'remarks' => $payload['remarks'] ?? 'Unpacking',

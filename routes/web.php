@@ -38,6 +38,9 @@ use App\Livewire\CommissionPolicy\Assign as CommissionAssignment;
 use App\Livewire\Recipe\Form as RecipeForm;
 use App\Livewire\Recipe\Show as RecipeShow;
 use App\Livewire\Recipe\View as RecipeView;
+use App\Livewire\SalesInvoice\Form as SalesInvoiceForm;
+use App\Livewire\SalesInvoice\Show as SalesInvoiceShow;
+use App\Livewire\SalesInvoice\View as SalesInvoiceView;
 use App\Livewire\Setup;
 use Illuminate\Support\Facades\Route;
 
@@ -200,6 +203,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('permission:dispatch.view')
             ->whereNumber('dispatch')
             ->name('dispatches.show');
+    });
+
+    Route::get('sales-invoices/create', SalesInvoiceForm::class)
+        ->middleware('permission:salesinvoice.create')
+        ->name('sales-invoices.create');
+
+    Route::get('sales-invoices/{salesInvoice}/edit', SalesInvoiceForm::class)
+        ->middleware('permission:salesinvoice.update')
+        ->whereNumber('salesInvoice')
+        ->name('sales-invoices.edit');
+
+    Route::middleware('permission:salesinvoice.view')->group(function () {
+        Route::get('sales-invoices', SalesInvoiceView::class)->name('sales-invoices.view');
+        Route::get('sales-invoices/{salesInvoice}', SalesInvoiceShow::class)
+            ->middleware('permission:salesinvoice.view')
+            ->whereNumber('salesInvoice')
+            ->name('sales-invoices.show');
     });
 
     Route::middleware('permission:production.view')->group(function () {

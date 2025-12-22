@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductionBatch;
 use App\Models\ProductionInput;
 use App\Models\StockLedger;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -98,7 +99,7 @@ class ProductionService
             $batch->inputs()->delete();
             $batch->inputs()->createMany($cleanInputs);
 
-            $this->ensureStockAvailable($cleanInputs, $inventoryService);
+            $this->ensureStockAvailable($cleanInputs, $inventoryService, $payload['date'] ?? $batch->date);
             $this->postLedger($batch, $inventoryService);
 
             return $batch->fresh(['inputs.materialProduct', 'outputProduct', 'recipe', 'yieldBaseProduct']);
@@ -156,7 +157,7 @@ class ProductionService
         ];
     }
 
-    private function ensureStockAvailable(array $inputs, InventoryService $inventoryService): void
+    private function ensureStockAvailable(array $inputs, InventoryService $inventoryService, $productionDate = null): void
     {
         $productIds = collect($inputs)->pluck('material_product_id')->unique()->filter()->values();
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
@@ -167,7 +168,9 @@ class ProductionService
                 continue;
             }
 
-            $available = $inventoryService->getCurrentStock($input['material_product_id']);
+            $available = $productionDate
+                ? $inventoryService->getStockAsOf($input['material_product_id'], $productionDate)
+                : $inventoryService->getCurrentStock($input['material_product_id']);
             if ($qty > $available) {
                 $productName = $products[$input['material_product_id']]->name ?? ('Product ID '.$input['material_product_id']);
                 $shortage = round($qty - $available, 3);
@@ -178,7 +181,9 @@ class ProductionService
 
     private function postLedger(ProductionBatch $batch, InventoryService $inventoryService): void
     {
-        $timestamp = $batch->date ? $batch->date->toDateString().' 12:00:00' : now();
+        $timestamp = $batch->date
+            ? $batch->date->copy()->setTimeFromTimeString(now()->format('H:i:s'))
+            : now();
         $reference = [
             'reference_type' => ProductionBatch::class,
             'reference_id' => $batch->id,

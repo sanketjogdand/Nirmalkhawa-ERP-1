@@ -227,6 +227,10 @@ class DispatchService
         $dispatch->loadMissing('lines.product');
         $this->ensureStockAvailable($dispatch, $inventoryService);
 
+        $txnTimestamp = $dispatch->dispatch_date
+            ? $dispatch->dispatch_date->copy()->setTimeFromTimeString(now()->format('H:i:s'))
+            : now();
+
         foreach ($dispatch->lines as $line) {
             if ($line->sale_mode === DispatchLine::MODE_BULK) {
                 $inventoryService->postOut(
@@ -234,7 +238,7 @@ class DispatchService
                     (float) $line->qty_bulk,
                     StockLedger::TYPE_DISPATCH_BULK_OUT,
                     [
-                        'txn_datetime' => $dispatch->dispatch_date ? $dispatch->dispatch_date->toDateString().' 12:00:00' : now(),
+                        'txn_datetime' => $txnTimestamp,
                         'uom' => $line->uom ?: ($line->product->uom ?? null),
                         'remarks' => 'Dispatch '.$dispatch->dispatch_no,
                         'reference_type' => DispatchLine::class,
@@ -271,7 +275,7 @@ class DispatchService
 
                 StockLedger::create([
                     'product_id' => $line->product_id,
-                    'txn_datetime' => $dispatch->dispatch_date ? $dispatch->dispatch_date->toDateString().' 12:00:00' : now(),
+                    'txn_datetime' => $txnTimestamp,
                     'txn_type' => StockLedger::TYPE_DISPATCH_PACK_OUT,
                     'is_increase' => false,
                     'qty' => $line->computed_total_qty ?? 0,

@@ -6,12 +6,27 @@ use App\Models\Product;
 use App\Models\StockLedger;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use Carbon\Carbon;
 
 class InventoryService
 {
     public function getCurrentStock(int $productId): float
     {
         return (float) StockLedger::where('product_id', $productId)
+            ->whereNotIn('txn_type', [
+                StockLedger::TYPE_DISPATCH_PACK_OUT,
+                'DISPATCH_PACK', // legacy
+            ])
+            ->selectRaw('COALESCE(SUM(CASE WHEN is_increase = 1 THEN qty ELSE -qty END), 0) as balance')
+            ->value('balance');
+    }
+
+    public function getStockAsOf(int $productId, $asOf): float
+    {
+        $asOfTimestamp = $asOf ? Carbon::parse($asOf)->endOfDay() : now();
+
+        return (float) StockLedger::where('product_id', $productId)
+            ->where('txn_datetime', '<=', $asOfTimestamp)
             ->whereNotIn('txn_type', [
                 StockLedger::TYPE_DISPATCH_PACK_OUT,
                 'DISPATCH_PACK', // legacy
