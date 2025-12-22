@@ -35,6 +35,9 @@ class Form extends Component
     public $kg_fat;
     public $kg_snf;
     public $rate_status = MilkIntake::STATUS_CALCULATED;
+    public $commission_policy_id;
+    public $commission_amount = 0;
+    public $net_amount;
 
     public Collection $centers;
     public bool $keepManualRate = false;
@@ -67,6 +70,9 @@ class Form extends Component
                 'kg_fat',
                 'kg_snf',
                 'rate_status',
+                'commission_policy_id',
+                'commission_amount',
+                'net_amount',
             ]));
             $this->date = $record->date ? $record->date->toDateString() : null;
 
@@ -127,9 +133,19 @@ class Form extends Component
             $rate
         );
 
+        $commission = $this->calculateCommission(
+            (int) $data['center_id'],
+            $data['milk_type'],
+            $data['date'],
+            (float) $data['qty_ltr']
+        );
+
         $payload = array_merge($data, $metrics, [
             'rate_per_ltr' => $rate,
             'rate_status' => $this->keepManualRate ? MilkIntake::STATUS_MANUAL : MilkIntake::STATUS_CALCULATED,
+            'commission_policy_id' => $commission['commission_policy_id'],
+            'commission_amount' => $commission['commission_amount'],
+            'net_amount' => ($metrics['amount'] ?? 0) - $commission['commission_amount'],
         ]);
 
         DB::transaction(function () use ($payload, $inventoryService) {
@@ -185,6 +201,7 @@ class Form extends Component
         }
 
         $this->refreshDerived();
+        $this->refreshCommission();
     }
 
     private function refreshDerived(): void
@@ -205,6 +222,7 @@ class Form extends Component
         $this->kg_fat = $metrics['kg_fat'];
         $this->kg_snf = $metrics['kg_snf'];
         $this->amount = $metrics['amount'];
+        $this->refreshCommission();
     }
 
     private function rules(): array
@@ -221,6 +239,30 @@ class Form extends Component
         ];
     }
 
+    private function refreshCommission(): void
+    {
+        if (! $this->center_id || ! $this->date || ! $this->milk_type || $this->qty_ltr === null) {
+            return;
+        }
+
+        $commission = $this->calculateCommission(
+            (int) $this->center_id,
+            $this->milk_type,
+            $this->date,
+            (float) $this->qty_ltr
+        );
+
+        $this->commission_policy_id = $commission['commission_policy_id'];
+        $this->commission_amount = $commission['commission_amount'];
+        $this->net_amount = ($this->amount ?? 0) - $this->commission_amount;
+    }
+
+    private function calculateCommission(int $centerId, string $milkType, $date, float $qtyLtr): array
+    {
+        $calc = app(\App\Services\MilkCommissionCalculator::class);
+        return $calc->calculate($centerId, $milkType, $date, $qtyLtr);
+    }
+
     private function postLedger(InventoryService $inventoryService, MilkIntake $intake): void
     {
         $product = $inventoryService->getMilkProduct($intake->milk_type);
@@ -232,6 +274,7 @@ class Form extends Component
         $inventoryService->postIn($product->id, (float) $intake->qty_ltr, StockLedger::TYPE_IN, [
             'txn_datetime' => $timestamp,
             'remarks' => 'Milk intake '.$intake->milk_type.' for center '.$intake->center_id,
+            // 'remarks' => 'Milk intake '.$intake->milk_type.' from '.$intake->center->name,
             'reference_type' => MilkIntake::class,
             'reference_id' => $intake->id,
         ]);

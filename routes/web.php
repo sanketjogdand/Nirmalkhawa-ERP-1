@@ -32,6 +32,9 @@ use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
 use App\Livewire\RateChart\View as RateChartView;
+use App\Livewire\CommissionPolicy\View as CommissionPolicyView;
+use App\Livewire\CommissionPolicy\Form as CommissionPolicyForm;
+use App\Livewire\CommissionPolicy\Assign as CommissionAssignment;
 use App\Livewire\Recipe\Form as RecipeForm;
 use App\Livewire\Recipe\Show as RecipeShow;
 use App\Livewire\Recipe\View as RecipeView;
@@ -50,6 +53,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereNumber('rateChart')
             ->name('rate-charts.show');
     });
+
+    Route::middleware('permission:commissionpolicy.view')->group(function () {
+        Route::get('commission-policies', CommissionPolicyView::class)->name('commission-policies.view');
+    });
+    Route::get('commission-policies/create', CommissionPolicyForm::class)
+        ->middleware('permission:commissionpolicy.create')
+        ->name('commission-policies.create');
+    Route::get('commission-policies/{policy}/edit', CommissionPolicyForm::class)
+        ->middleware('permission:commissionpolicy.update')
+        ->whereNumber('policy')
+        ->name('commission-policies.edit');
+    Route::get('commission-assignments', CommissionAssignment::class)
+        ->middleware('permission:commissionassignment.view')
+        ->name('commission-assignments');
 
     Route::get('rate-charts/create', RateChartForm::class)
         ->middleware('permission:ratechart.create')

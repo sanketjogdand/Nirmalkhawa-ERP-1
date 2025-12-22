@@ -417,11 +417,18 @@
                     <flux:navlist.item :href="route('customers.view')" :current="request()->routeIs('customers.*')" wire:navigate>{{ __('Customers') }}</flux:navlist.item>
                 </flux:navlist.group>
             @endcan
-            @can('ratechart.view')
-                <flux:navlist.group expandable :heading="__('Rate Charts')" class="lg:grid" :expanded="request()->routeIs('rate-charts.*')">
-                    <flux:navlist.item :href="route('rate-charts.view')" :current="request()->routeIs('rate-charts.*')" wire:navigate>{{ __('Rate Charts') }}</flux:navlist.item>
+            @canany(['ratechart.view', 'commissionpolicy.view'])
+                <flux:navlist.group expandable :heading="__('Rates & Commission')" class="lg:grid" :expanded="request()->routeIs(['rate-charts.*','commission-*'])">
+                    @can('ratechart.view')
+                        <flux:navlist.item :href="route('rate-charts.view')" :current="request()->routeIs(['rate-charts.view', 'rate-charts.create', 'rate-charts.edit'])" wire:navigate>{{ __('Rate Charts') }}</flux:navlist.item>
+                        <flux:navlist.item :href="route('rate-charts.calculator')" :current="request()->routeIs('rate-charts.calculator')" wire:navigate>{{ __('Rate Calculator') }}</flux:navlist.item>
+                    @endcan
+                    @can('commissionpolicy.view')
+                        <flux:navlist.item :href="route('commission-policies.view')" :current="request()->routeIs('commission-policies.*')" wire:navigate>{{ __('Commission Policies') }}</flux:navlist.item>
+                        <flux:navlist.item :href="route('commission-assignments')" :current="request()->routeIs('commission-assignments')" wire:navigate>{{ __('Commission Assignments') }}</flux:navlist.item>
+                    @endcan
                 </flux:navlist.group>
-            @endcan
+            @endcanany
             @can('milkintake.view')
                 <flux:navlist.group expandable :heading="__('Milk Intake')" class="lg:grid" :expanded="request()->routeIs('milk-intakes.*')">
                     <flux:navlist.item :href="route('milk-intakes.view')" :current="request()->routeIs('milk-intakes.*')" wire:navigate>{{ __('Milk Intake') }}</flux:navlist.item>

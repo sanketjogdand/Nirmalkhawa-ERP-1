@@ -90,6 +90,8 @@
                     <th class="px-4 py-2 border dark:border-zinc-700">SNF%</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Rate/Ltr</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Amount</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Commission</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Net Amount</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Kg FAT</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Kg SNF</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Rate Status</th>
@@ -129,6 +131,14 @@
                         <td class="px-4 py-2 border dark:border-zinc-700">
                             @if($row->amount)
                                 ₹{{ number_format($row->amount, 2) }}
+                            @endif
+                        </td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">
+                            ₹{{ number_format($row->commission_amount ?? 0, 2) }}
+                        </td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">
+                            @if($row->net_amount !== null)
+                                ₹{{ number_format($row->net_amount, 2) }}
                             @endif
                         </td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ number_format($row->kg_fat, 3) }}</td>

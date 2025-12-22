@@ -22,6 +22,9 @@ class MilkIntake extends Model
         'fat_pct',
         'snf_pct',
         'rate_per_ltr',
+        'commission_policy_id',
+        'commission_amount',
+        'net_amount',
         'amount',
         'kg_fat',
         'kg_snf',
@@ -42,6 +45,8 @@ class MilkIntake extends Model
         'fat_pct' => 'decimal:2',
         'snf_pct' => 'decimal:2',
         'rate_per_ltr' => 'decimal:2',
+        'commission_amount' => 'decimal:2',
+        'net_amount' => 'decimal:2',
         'amount' => 'decimal:2',
         'kg_fat' => 'decimal:3',
         'kg_snf' => 'decimal:3',
@@ -111,7 +116,7 @@ class MilkIntake extends Model
         $this->syncDerivedAmounts($rate);
     }
 
-    public function syncDerivedAmounts(?float $ratePerLtr): void
+    public function syncDerivedAmounts(?float $ratePerLtr, ?float $commissionAmount = null): void
     {
         $metrics = self::computeMetrics(
             (float) $this->qty_ltr,
@@ -125,5 +130,7 @@ class MilkIntake extends Model
         $this->kg_fat = $metrics['kg_fat'];
         $this->kg_snf = $metrics['kg_snf'];
         $this->amount = $metrics['amount'];
+        $this->commission_amount = $commissionAmount ?? $this->commission_amount ?? 0;
+        $this->net_amount = ($this->amount ?? 0) - ($this->commission_amount ?? 0);
     }
 }

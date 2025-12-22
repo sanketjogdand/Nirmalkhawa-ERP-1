@@ -45,6 +45,18 @@ class Center extends Model
         return $this->hasMany(CenterRateChart::class);
     }
 
+    public function commissionPolicies(): BelongsToMany
+    {
+        return $this->belongsToMany(CommissionPolicy::class, 'center_commission_assignments')
+            ->withPivot(['effective_from', 'effective_to', 'is_active'])
+            ->withTimestamps();
+    }
+
+    public function commissionAssignments(): HasMany
+    {
+        return $this->hasMany(CenterCommissionAssignment::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'Active');

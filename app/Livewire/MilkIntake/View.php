@@ -139,6 +139,8 @@ class View extends Component
 
         $records = $query->get();
 
+        $commissionCalc = app(\App\Services\MilkCommissionCalculator::class);
+
         foreach ($records as $intake) {
             $rate = null;
 
@@ -159,7 +161,15 @@ class View extends Component
             $intake->manual_rate_by = null;
             $intake->manual_rate_at = null;
             $intake->manual_rate_reason = null;
-            $intake->syncDerivedAmounts($rate);
+            $commission = $commissionCalc->calculate(
+                $intake->center_id,
+                $intake->milk_type,
+                $intake->date,
+                (float) $intake->qty_ltr
+            );
+            $intake->commission_policy_id = $commission['commission_policy_id'];
+            $intake->commission_amount = $commission['commission_amount'];
+            $intake->syncDerivedAmounts($rate, $commission['commission_amount']);
             $intake->rate_per_ltr = $rate;
             $intake->save();
         }
@@ -288,7 +298,17 @@ class View extends Component
             return;
         }
 
+        $commission = app(\App\Services\MilkCommissionCalculator::class)->calculate(
+            $intake->center_id,
+            $intake->milk_type,
+            $intake->date,
+            (float) $intake->qty_ltr
+        );
+
+        $intake->commission_policy_id = $commission['commission_policy_id'];
+        $intake->commission_amount = $commission['commission_amount'];
         $intake->markManualRate((float) $data['override_rate_per_ltr'], $data['override_reason'], auth()->id());
+        $intake->syncDerivedAmounts((float) $data['override_rate_per_ltr'], $commission['commission_amount']);
         $intake->save();
 
         $this->overrideId = null;
