@@ -9,6 +9,9 @@ use App\Livewire\Center\View as CenterView;
 use App\Livewire\Customer\Form as CustomerForm;
 use App\Livewire\Customer\Show as CustomerShow;
 use App\Livewire\Customer\View as CustomerView;
+use App\Livewire\Supplier\Form as SupplierForm;
+use App\Livewire\Supplier\Show as SupplierShow;
+use App\Livewire\Supplier\View as SupplierView;
 use App\Livewire\MilkIntake\Form as MilkIntakeForm;
 use App\Livewire\MilkIntake\View as MilkIntakeView;
 use App\Livewire\Product\Form as ProductForm;
@@ -121,6 +124,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:product.update')
         ->whereNumber('product')
         ->name('products.edit');
+
+    Route::middleware('permission:supplier.view')->group(function () {
+        Route::get('suppliers', SupplierView::class)->name('suppliers.view');
+        Route::get('suppliers/{supplier}', SupplierShow::class)
+            ->whereNumber('supplier')
+            ->name('suppliers.show');
+    });
+
+    Route::get('suppliers/create', SupplierForm::class)
+        ->middleware('permission:supplier.create')
+        ->name('suppliers.create');
+
+    Route::get('suppliers/{supplier}/edit', SupplierForm::class)
+        ->middleware('permission:supplier.update')
+        ->whereNumber('supplier')
+        ->name('suppliers.edit');
 
     Route::middleware('permission:customer.view')->group(function () {
         Route::get('customers', CustomerView::class)->name('customers.view');
