@@ -499,13 +499,16 @@
                     @endcanany
                 </flux:navlist.group>
             @endcanany
-            @canany(['supplier.view', 'deliveryexpense.view'])
-                <flux:navlist.group expandable :heading="__('Supplier')" class="lg:grid" :expanded="request()->routeIs(['suppliers.*', 'delivery-expenses.*'])">
+            @canany(['supplier.view', 'deliveryexpense.view', 'supplierpayment.view'])
+                <flux:navlist.group expandable :heading="__('Supplier')" class="lg:grid" :expanded="request()->routeIs(['suppliers.*', 'delivery-expenses.*', 'supplier-payments.*'])">
                     @can('supplier.view')
                         <flux:navlist.item :href="route('suppliers.view')" :current="request()->routeIs('suppliers.*')" wire:navigate>{{ __('Suppliers') }}</flux:navlist.item>
                     @endcan
                     @can('deliveryexpense.view')
                         <flux:navlist.item :href="route('delivery-expenses.view')" :current="request()->routeIs('delivery-expenses.*')" wire:navigate>{{ __('Delivery Expenses') }}</flux:navlist.item>
+                    @endcan
+                    @can('supplierpayment.view')
+                        <flux:navlist.item :href="route('supplier-payments.view')" :current="request()->routeIs('supplier-payments.*')" wire:navigate>{{ __('Supplier Payments') }}</flux:navlist.item>
                     @endcan
                 </flux:navlist.group>
             @endcanany

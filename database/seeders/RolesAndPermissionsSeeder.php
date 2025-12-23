@@ -80,6 +80,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'supplier.create',
             'supplier.update',
             'supplier.delete',
+            'supplierpayment.view',
+            'supplierpayment.create',
+            'supplierpayment.update',
+            'supplierpayment.delete',
             'dispatch.view',
             'dispatch.create',
             'dispatch.update',
@@ -148,6 +152,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'salesinvoice.update',
             'salesinvoice.post',
             'salesinvoice.lock',
+            'supplierpayment.view',
+            'supplierpayment.create',
+            'supplierpayment.update',
+            'supplierpayment.delete',
         ]);
 
         $productionSupervisorRole = Role::firstOrCreate(['name' => 'Production Supervisor']);

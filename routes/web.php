@@ -33,6 +33,9 @@ use App\Livewire\Dispatch\Form as DispatchForm;
 use App\Livewire\Dispatch\Show as DispatchShow;
 use App\Livewire\DeliveryExpense\View as DeliveryExpenseView;
 use App\Livewire\DeliveryExpense\Form as DeliveryExpenseForm;
+use App\Livewire\SupplierPayment\Form as SupplierPaymentForm;
+use App\Livewire\SupplierPayment\Show as SupplierPaymentShow;
+use App\Livewire\SupplierPayment\View as SupplierPaymentView;
 use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
@@ -228,6 +231,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:deliveryexpense.update')
         ->whereNumber('expense')
         ->name('delivery-expenses.edit');
+
+    Route::middleware('permission:supplierpayment.view')->group(function () {
+        Route::get('supplier-payments', SupplierPaymentView::class)->name('supplier-payments.view');
+        Route::get('supplier-payments/{payment}', SupplierPaymentShow::class)
+            ->whereNumber('payment')
+            ->name('supplier-payments.show');
+    });
+    Route::get('supplier-payments/create', SupplierPaymentForm::class)
+        ->middleware('permission:supplierpayment.create')
+        ->name('supplier-payments.create');
+    Route::get('supplier-payments/{payment}/edit', SupplierPaymentForm::class)
+        ->middleware('permission:supplierpayment.update')
+        ->whereNumber('payment')
+        ->name('supplier-payments.edit');
 
     Route::middleware('permission:dispatch.view')->group(function () {
         Route::get('dispatches', DispatchView::class)->name('dispatches.view');

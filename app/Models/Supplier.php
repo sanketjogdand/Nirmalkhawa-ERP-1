@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\DispatchDeliveryExpense;
+use App\Models\SupplierPayment;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -69,8 +70,6 @@ class Supplier extends Model
      */
     public function supplierPayments(): HasMany
     {
-        $related = class_exists('App\\Models\\SupplierPayment') ? 'App\\Models\\SupplierPayment' : self::class;
-
-        return $this->hasMany($related);
+        return $this->hasMany(SupplierPayment::class);
     }
 }
