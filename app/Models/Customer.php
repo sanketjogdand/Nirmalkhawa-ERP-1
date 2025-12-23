@@ -59,14 +59,9 @@ class Customer extends Model
         return $this->hasMany($related);
     }
 
-    /**
-     * Placeholder for future receipts relation.
-     */
     public function receipts(): HasMany
     {
-        $related = class_exists('App\\Models\\Receipt') ? 'App\\Models\\Receipt' : self::class;
-
-        return $this->hasMany($related);
+        return $this->hasMany(CustomerReceipt::class);
     }
 
     public function dispatchLines(): HasMany

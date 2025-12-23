@@ -9,6 +9,9 @@ use App\Livewire\Center\View as CenterView;
 use App\Livewire\Customer\Form as CustomerForm;
 use App\Livewire\Customer\Show as CustomerShow;
 use App\Livewire\Customer\View as CustomerView;
+use App\Livewire\CustomerReceipt\Form as CustomerReceiptForm;
+use App\Livewire\CustomerReceipt\Show as CustomerReceiptShow;
+use App\Livewire\CustomerReceipt\View as CustomerReceiptView;
 use App\Livewire\Supplier\Form as SupplierForm;
 use App\Livewire\Supplier\Show as SupplierShow;
 use App\Livewire\Supplier\View as SupplierView;
@@ -270,6 +273,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereNumber('salesInvoice')
             ->name('sales-invoices.show');
     });
+
+    Route::middleware('permission:receipt.view')->group(function () {
+        Route::get('customer-receipts', CustomerReceiptView::class)->name('customer-receipts.view');
+        Route::get('customer-receipts/{receipt}', CustomerReceiptShow::class)
+            ->whereNumber('receipt')
+            ->name('customer-receipts.show');
+    });
+    Route::get('customer-receipts/create', CustomerReceiptForm::class)
+        ->middleware('permission:receipt.create')
+        ->name('customer-receipts.create');
+    Route::get('customer-receipts/{receipt}/edit', CustomerReceiptForm::class)
+        ->middleware('permission:receipt.update')
+        ->whereNumber('receipt')
+        ->name('customer-receipts.edit');
 
     Route::middleware('permission:production.view')->group(function () {
         Route::get('productions', ProductionView::class)->name('productions.view');
