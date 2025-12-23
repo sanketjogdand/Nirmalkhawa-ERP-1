@@ -89,47 +89,5 @@
         </table>
     </div>
 
-    <h3 style="margin:1.5rem 0 0.5rem 0;">Stock Ledger (Bulk only)</h3>
-    <div class="table-wrapper">
-        <table class="product-table hover-highlight">
-            <thead>
-                <tr>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Date/Time</th>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Product</th>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Type</th>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Qty</th>
-                    <th class="px-4 py-2 border dark:border-zinc-700">UOM</th>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Remarks</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($ledgers as $entry)
-                    <tr>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->txn_datetime?->format('d M Y H:i') }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->product?->name }}</td>
-                        @php
-                            $typeLabel = $entry->txn_type;
-                            if ($entry->txn_type === 'DISPATCH_OUT') {
-                                $typeLabel = 'DISPATCH_BULK_OUT';
-                            } elseif ($entry->txn_type === 'DISPATCH_PACK') {
-                                $typeLabel = 'DISPATCH_PACK_OUT';
-                            } elseif ($entry->txn_type === 'DISPATCH_PACK_DELETED') {
-                                $typeLabel = 'DISPATCH_PACK_DELETED';
-                            } elseif ($entry->txn_type === 'DISPATCH_BULK_DELETED') {
-                                $typeLabel = 'DISPATCH_BULK_DELETED';
-                            }
-                        @endphp
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $typeLabel }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->is_increase ? '+' : '-' }}{{ number_format($entry->qty, 3) }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->uom }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->remarks }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No ledger entries for this dispatch.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+    @livewire('delivery-expense.manage', ['dispatchId' => $dispatch->id], key('dispatch-expenses-'.$dispatch->id))
 </div>

@@ -487,7 +487,7 @@
                 </flux:navlist.group>
             @endcanany
             @canany(['customer.view', 'salesinvoice.view', 'dispatch.view', 'dispatch.create', 'dispatch.update'])
-                <flux:navlist.group expandable :heading="__('Customers')" class="lg:grid" :expanded="request()->routeIs(['customers.*', 'suppliers.*', 'sales-invoices.*', 'dispatches.*'])">
+                <flux:navlist.group expandable :heading="__('Customers')" class="lg:grid" :expanded="request()->routeIs(['customers.*', 'sales-invoices.*', 'dispatches.*'])">
                     @can('customer.view')
                         <flux:navlist.item :href="route('customers.view')" :current="request()->routeIs('customers.*')" wire:navigate>{{ __('Customers') }}</flux:navlist.item>
                     @endcan
@@ -499,10 +499,13 @@
                     @endcanany
                 </flux:navlist.group>
             @endcanany
-            @canany(['supplier.view'])
-                <flux:navlist.group expandable :heading="__('Supplier')" class="lg:grid" :expanded="request()->routeIs(['suppliers.*'])">
+            @canany(['supplier.view', 'deliveryexpense.view'])
+                <flux:navlist.group expandable :heading="__('Supplier')" class="lg:grid" :expanded="request()->routeIs(['suppliers.*', 'delivery-expenses.*'])">
                     @can('supplier.view')
                         <flux:navlist.item :href="route('suppliers.view')" :current="request()->routeIs('suppliers.*')" wire:navigate>{{ __('Suppliers') }}</flux:navlist.item>
+                    @endcan
+                    @can('deliveryexpense.view')
+                        <flux:navlist.item :href="route('delivery-expenses.view')" :current="request()->routeIs('delivery-expenses.*')" wire:navigate>{{ __('Delivery Expenses') }}</flux:navlist.item>
                     @endcan
                 </flux:navlist.group>
             @endcanany

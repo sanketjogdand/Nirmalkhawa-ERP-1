@@ -31,6 +31,8 @@ use App\Livewire\Production\View as ProductionView;
 use App\Livewire\Dispatch\View as DispatchView;
 use App\Livewire\Dispatch\Form as DispatchForm;
 use App\Livewire\Dispatch\Show as DispatchShow;
+use App\Livewire\DeliveryExpense\View as DeliveryExpenseView;
+use App\Livewire\DeliveryExpense\Form as DeliveryExpenseForm;
 use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
@@ -215,6 +217,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:dispatch.update')
         ->whereNumber('dispatch')
         ->name('dispatches.edit');
+
+    Route::get('delivery-expenses', DeliveryExpenseView::class)
+        ->middleware('permission:deliveryexpense.view')
+        ->name('delivery-expenses.view');
+    Route::get('delivery-expenses/create', DeliveryExpenseForm::class)
+        ->middleware('permission:deliveryexpense.create')
+        ->name('delivery-expenses.create');
+    Route::get('delivery-expenses/{expense}/edit', DeliveryExpenseForm::class)
+        ->middleware('permission:deliveryexpense.update')
+        ->whereNumber('expense')
+        ->name('delivery-expenses.edit');
 
     Route::middleware('permission:dispatch.view')->group(function () {
         Route::get('dispatches', DispatchView::class)->name('dispatches.view');

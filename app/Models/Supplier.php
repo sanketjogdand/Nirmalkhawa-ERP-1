@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\DispatchDeliveryExpense;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -58,14 +59,9 @@ class Supplier extends Model
         return $this->belongsTo(Village::class);
     }
 
-    /**
-     * Placeholder for future dispatch delivery expenses relation.
-     */
     public function dispatchDeliveryExpenses(): HasMany
     {
-        $related = class_exists('App\\Models\\DispatchDeliveryExpense') ? 'App\\Models\\DispatchDeliveryExpense' : self::class;
-
-        return $this->hasMany($related);
+        return $this->hasMany(DispatchDeliveryExpense::class);
     }
 
     /**
