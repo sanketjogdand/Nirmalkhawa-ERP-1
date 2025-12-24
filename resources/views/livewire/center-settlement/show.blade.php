@@ -1,7 +1,9 @@
 <div class="product-container">
     @php View::share('title_name', $title_name); @endphp
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-        <h2 class="page-heading" style="margin-bottom:0;">Settlement {{ $settlement->settlement_no }}</h2>
+        <h2 class="page-heading" style="margin-bottom:0;">
+            Center Settlement Details
+        </h2>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <a href="{{ route('center-settlements.view') }}" class="btn-primary" wire:navigate>Back to list</a>
             @can('centersettlement.update')
@@ -25,9 +27,14 @@
                 </div>
             </div>
             <div style="padding:12px; border-radius:8px;" class="border dark:border-zinc-700 dark:bg-zinc-800">
-                <div style="font-size:13px; color:gray;">Status</div>
-                <div style="font-size:16px; font-weight:600;">{{ $settlement->status }}</div>
-                <div style="font-size:12px; color:gray;">Locked: {{ $settlement->is_locked ? 'Yes' : 'No' }}</div>
+                <div style="font-size:13px; color:gray;">Lock Status</div>
+                <div style="font-size:16px; font-weight:600;">{{ $settlement->is_locked ? 'Locked' : 'Unlocked' }}</div>
+                @if($settlement->lockedBy)
+                    <div style="font-size:12px; color:gray;">By: {{ $settlement->lockedBy?->name }}</div>
+                @endif
+                @if($settlement->locked_at)
+                    <div style="font-size:12px; color:gray;">At: {{ $settlement->locked_at->format('d M Y H:i') }}</div>
+                @endif
             </div>
             <div style="padding:12px; border-radius:8px;" class="border dark:border-zinc-700 dark:bg-zinc-800">
                 <div style="font-size:13px; color:gray;">Notes</div>

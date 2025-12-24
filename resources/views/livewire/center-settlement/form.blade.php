@@ -3,9 +3,6 @@
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <h2 class="page-heading" style="margin-bottom:0;">
             {{ $settlementId ? 'Edit Settlement' : 'New Settlement' }}
-            @if($settlement_no)
-                <span style="font-size:14px; color:gray;">#{{ $settlement_no }}</span>
-            @endif
         </h2>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <a href="{{ route('center-settlements.view') }}" class="btn-primary" wire:navigate>Back to list</a>
@@ -16,7 +13,7 @@
         <div class="form-grid">
             <div class="form-group">
                 <label for="center_id">Center</label>
-                <select id="center_id" wire:model.live="center_id" class="input-field" required @if($settlementId && $status === \App\Models\CenterSettlement::STATUS_FINAL) disabled @endif>
+                <select id="center_id" wire:model.live="center_id" class="input-field" required>
                     <option value="">Select center</option>
                     @foreach($centers as $center)
                         <option value="{{ $center->id }}">{{ $center->name }} ({{ $center->code }})</option>
@@ -94,6 +91,41 @@
             @if($previewCount === 0)
                 <div style="margin-top:10px; color:#ef4444;" class="dark:text-red-400">No unsettled milk intakes found in this period.</div>
             @endif
+        </div>
+
+        <div style="margin-top:12px;" class="table-wrapper">
+            <table class="product-table hover-highlight">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Date</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Shift</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Milk Type</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Qty (L)</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">FAT%</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">SNF%</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Linked</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($previewRows as $row)
+                        <tr>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ \Illuminate\Support\Carbon::parse($row['date'])->format('d M Y') }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $row['shift'] }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $row['milk_type'] }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ number_format($row['qty_ltr'], 2) }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ number_format($row['fat_pct'], 2) }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ number_format($row['snf_pct'], 2) }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">
+                                {{ $row['center_settlement_id'] ? 'Currently linked' : 'Unlinked' }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No rows in preview.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
 
         <div style="margin-top:16px; display:flex; gap:12px;">

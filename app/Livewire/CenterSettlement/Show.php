@@ -16,7 +16,7 @@ class Show extends Component
     public function mount($settlement)
     {
         $this->authorize('centersettlement.view');
-        $record = CenterSettlement::with(['center', 'milkIntakes' => function ($q) {
+        $record = CenterSettlement::with(['center', 'lockedBy', 'milkIntakes' => function ($q) {
             $q->orderBy('date')->orderBy('shift');
         }])->find($settlement);
 

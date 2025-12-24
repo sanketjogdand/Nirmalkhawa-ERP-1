@@ -179,8 +179,8 @@ class Form extends Component
     {
         if ($intake->center_settlement_id) {
             $settlement = $intake->centerSettlement;
-            if ($settlement && $settlement->is_locked && $settlement->status === CenterSettlement::STATUS_FINAL) {
-                abort(403, 'Milk intake is part of a finalized settlement and cannot be edited.');
+            if ($settlement && $settlement->is_locked) {
+                abort(403, 'Milk intake is part of a locked settlement and cannot be edited.');
             }
 
             // Allow edits only when the linked settlement is unlocked/draft

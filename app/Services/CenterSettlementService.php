@@ -11,8 +11,10 @@ use RuntimeException;
 
 class CenterSettlementService
 {
-    public function createDraft(array $payload): CenterSettlement
+    public function createSettlement(array $payload): CenterSettlement
     {
+        $this->assertUniquePeriod($payload['center_id'], $payload['period_from'], $payload['period_to']);
+
         $intakes = $this->fetchIntakes(
             (int) $payload['center_id'],
             $payload['period_from'],
@@ -30,8 +32,6 @@ class CenterSettlementService
                 'center_id' => $payload['center_id'],
                 'period_from' => $payload['period_from'],
                 'period_to' => $payload['period_to'],
-                'settlement_no' => $payload['settlement_no'] ?? $this->generateSettlementNo($payload['period_from']),
-                'status' => CenterSettlement::STATUS_DRAFT,
                 'notes' => $payload['notes'] ?? null,
                 'created_by' => $payload['created_by'] ?? Auth::id(),
                 'is_locked' => false,
@@ -46,21 +46,20 @@ class CenterSettlementService
         });
     }
 
-    public function updateDraft(CenterSettlement $settlement, array $payload): CenterSettlement
+    public function updateSettlement(CenterSettlement $settlement, array $payload): CenterSettlement
     {
-        if ($settlement->status === CenterSettlement::STATUS_FINAL && $settlement->is_locked) {
-            throw new RuntimeException('Unlock the settlement before editing.');
+        if ($settlement->is_locked) {
+            throw new RuntimeException('Settlement is locked. Ask admin to unlock first.');
         }
 
-        return DB::transaction(function () use ($settlement, $payload) {
-            MilkIntake::where('center_settlement_id', $settlement->id)->update([
-                'center_settlement_id' => null,
-            ]);
+        $this->assertUniquePeriod($payload['center_id'], $payload['period_from'], $payload['period_to'], $settlement->id);
 
+        return DB::transaction(function () use ($settlement, $payload) {
             $intakes = $this->fetchIntakes(
                 (int) $payload['center_id'],
                 $payload['period_from'],
-                $payload['period_to']
+                $payload['period_to'],
+                $settlement->id
             );
 
             if ($intakes->isEmpty()) {
@@ -69,12 +68,15 @@ class CenterSettlementService
 
             $totals = $this->calculateTotals($intakes);
 
+            MilkIntake::where('center_settlement_id', $settlement->id)->update([
+                'center_settlement_id' => null,
+            ]);
+
             $settlement->update([
                 'center_id' => $payload['center_id'],
                 'period_from' => $payload['period_from'],
                 'period_to' => $payload['period_to'],
                 'notes' => $payload['notes'] ?? null,
-                'status' => CenterSettlement::STATUS_DRAFT,
                 'is_locked' => false,
                 'locked_by' => null,
                 'locked_at' => null,
@@ -89,21 +91,20 @@ class CenterSettlementService
         });
     }
 
-    public function finalize(CenterSettlement $settlement, int $userId): CenterSettlement
+    public function lock(CenterSettlement $settlement, int $userId): CenterSettlement
     {
-        if ($settlement->status === CenterSettlement::STATUS_FINAL && $settlement->is_locked) {
+        if ($settlement->is_locked) {
             return $settlement;
         }
 
         $intakes = $settlement->milkIntakes()->get();
         if ($intakes->isEmpty()) {
-            throw new RuntimeException('Cannot finalize settlement without linked milk intakes.');
+            throw new RuntimeException('Cannot lock settlement without linked milk intakes.');
         }
 
         $totals = $this->calculateTotals($intakes);
 
         $settlement->update([
-            'status' => CenterSettlement::STATUS_FINAL,
             'is_locked' => true,
             'locked_by' => $userId,
             'locked_at' => now(),
@@ -119,7 +120,6 @@ class CenterSettlementService
             'is_locked' => false,
             'locked_by' => null,
             'locked_at' => null,
-            'status' => CenterSettlement::STATUS_DRAFT,
         ]);
 
         return $settlement->refresh();
@@ -132,7 +132,7 @@ class CenterSettlementService
         }
 
         if ($settlement->is_locked) {
-            throw new RuntimeException('Unlock the settlement before deleting.');
+            throw new RuntimeException('Settlement is locked. Ask admin to unlock first.');
         }
 
         DB::transaction(function () use ($settlement) {
@@ -165,28 +165,17 @@ class CenterSettlementService
         ];
     }
 
-    public function generateSettlementNo(string $periodFrom): string
-    {
-        $prefix = 'CS-'.date('Ym', strtotime($periodFrom)).'-';
-
-        $last = CenterSettlement::withTrashed()
-            ->where('settlement_no', 'like', $prefix.'%')
-            ->orderByDesc('id')
-            ->value('settlement_no');
-
-        $next = 1;
-        if ($last && str_starts_with($last, $prefix)) {
-            $next = (int) substr($last, strlen($prefix)) + 1;
-        }
-
-        return $prefix.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
-    }
-
-    private function fetchIntakes(int $centerId, string $from, string $to): Collection
+    private function fetchIntakes(int $centerId, string $from, string $to, ?int $existingSettlementId = null): Collection
     {
         return MilkIntake::where('center_id', $centerId)
             ->whereBetween('date', [$from, $to])
-            ->whereNull('center_settlement_id')
+            ->where(function ($query) use ($existingSettlementId) {
+                $query->whereNull('center_settlement_id');
+
+                if ($existingSettlementId) {
+                    $query->orWhere('center_settlement_id', $existingSettlementId);
+                }
+            })
             ->get();
     }
 
@@ -194,5 +183,21 @@ class CenterSettlementService
     {
         // Placeholder for future payment allocation check
         return false;
+    }
+
+    private function assertUniquePeriod(int $centerId, string $from, string $to, ?int $ignoreId = null): void
+    {
+        $query = CenterSettlement::withTrashed()
+            ->where('center_id', $centerId)
+            ->whereDate('period_from', $from)
+            ->whereDate('period_to', $to);
+
+        if ($ignoreId) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        if ($query->exists()) {
+            throw new RuntimeException('A settlement already exists for this center and period.');
+        }
     }
 }

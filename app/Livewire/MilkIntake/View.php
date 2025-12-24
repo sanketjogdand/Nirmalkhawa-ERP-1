@@ -421,8 +421,8 @@ class View extends Component
     {
         if ($intake->center_settlement_id) {
             $settlement = $intake->centerSettlement;
-            if ($settlement && $settlement->is_locked && $settlement->status === CenterSettlement::STATUS_FINAL) {
-                session()->flash('danger', 'Record is part of a finalized settlement and cannot be modified.');
+            if ($settlement && $settlement->is_locked) {
+                session()->flash('danger', 'Record is part of a locked settlement and cannot be modified.');
 
                 return true;
             }

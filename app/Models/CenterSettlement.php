@@ -11,15 +11,10 @@ class CenterSettlement extends Model
 {
     use SoftDeletes;
 
-    public const STATUS_DRAFT = 'DRAFT';
-    public const STATUS_FINAL = 'FINAL';
-
     protected $fillable = [
         'center_id',
         'period_from',
         'period_to',
-        'settlement_no',
-        'status',
         'total_qty_ltr',
         'gross_amount_total',
         'commission_total',
@@ -76,15 +71,5 @@ class CenterSettlement extends Model
     public function lockedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'locked_by');
-    }
-
-    public function scopeDraft($query)
-    {
-        return $query->where('status', self::STATUS_DRAFT);
-    }
-
-    public function scopeFinal($query)
-    {
-        return $query->where('status', self::STATUS_FINAL);
     }
 }

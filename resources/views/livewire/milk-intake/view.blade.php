@@ -105,7 +105,7 @@
                         $highlight = $row->rate_per_ltr === null || $row->rate_per_ltr == 0;
                         $canUnlock = auth()->user()->can('milkintake.unlock');
                         $inSettlement = $row->center_settlement_id !== null;
-                        $settlementLocked = $row->centerSettlement && $row->centerSettlement->is_locked && $row->centerSettlement->status === \App\Models\CenterSettlement::STATUS_FINAL;
+                        $settlementLocked = $row->centerSettlement && $row->centerSettlement->is_locked;
                         $checkboxDisabled = $settlementLocked || ($row->is_locked && ! $canUnlock);
                     @endphp
                     <tr @if($highlight) style="background-color:#fff3cd;" @endif>
@@ -117,7 +117,10 @@
                             {{ $row->center?->name }}
                             <div style="font-size:12px; color:gray;">{{ $row->center?->code }}</div>
                             @if($inSettlement)
-                                <div style="font-size:12px; color:#f97316;">Settlement: {{ $row->centerSettlement?->settlement_no }} ({{ $row->centerSettlement?->status }})</div>
+                                <div style="font-size:12px; color:#f97316;">
+                                    Settlement: {{ $row->centerSettlement?->center?->name }}
+                                    ({{ $settlementLocked ? 'Locked' : 'Unlocked' }})
+                                </div>
                             @endif
                         </td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $row->shift }}</td>
@@ -193,7 +196,7 @@
                                     @endif
                                 @endforeach
                                 @if(empty($actions) && $settlementLocked)
-                                    <span style="color:#f97316;">Finalized</span>
+                                    <span style="color:#f97316;">Locked via settlement</span>
                                 @endif
                             </span>
                         </td>

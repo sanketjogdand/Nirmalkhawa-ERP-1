@@ -16,8 +16,6 @@ return new class extends Migration
             $table->foreignId('center_id')->constrained()->cascadeOnDelete();
             $table->date('period_from');
             $table->date('period_to');
-            $table->string('settlement_no', 50)->unique();
-            $table->enum('status', ['DRAFT', 'FINAL'])->default('DRAFT');
             $table->decimal('total_qty_ltr', 15, 3)->default(0);
             $table->decimal('gross_amount_total', 15, 2)->default(0);
             $table->decimal('commission_total', 15, 2)->default(0);

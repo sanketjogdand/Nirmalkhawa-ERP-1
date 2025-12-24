@@ -20,12 +20,10 @@ class Form extends Component
     public $title = 'Center Settlement';
 
     public ?int $settlementId = null;
-    public $settlement_no;
     public $center_id;
     public $period_from;
     public $period_to;
     public $notes;
-    public $status;
 
     public string $selectedMonth;
     public $templateId = '';
@@ -34,6 +32,7 @@ class Form extends Component
     public Collection $templates;
     public array $previewTotals = [];
     public int $previewCount = 0;
+    public array $previewRows = [];
 
     public function mount($settlement = null): void
     {
@@ -45,13 +44,13 @@ class Form extends Component
             $record = CenterSettlement::findOrFail($settlement);
             $this->authorize('centersettlement.update');
 
-            if ($record->is_locked && $record->status === CenterSettlement::STATUS_FINAL && ! auth()->user()->can('centersettlement.unlock')) {
-                abort(403, 'Finalized settlement is locked. Ask an admin to unlock before editing.');
+            if ($record->is_locked) {
+                session()->flash('danger', 'Settlement is locked. Ask admin to unlock first.');
+                $this->redirectRoute('center-settlements.show', $record->id);
+                return;
             }
 
             $this->settlementId = $record->id;
-            $this->settlement_no = $record->settlement_no;
-            $this->status = $record->status;
             $this->center_id = $record->center_id;
             $this->period_from = $record->period_from?->toDateString();
             $this->period_to = $record->period_to?->toDateString();
@@ -61,7 +60,6 @@ class Form extends Component
             $this->refreshPreview();
         } else {
             $this->authorize('centersettlement.create');
-            $this->status = CenterSettlement::STATUS_DRAFT;
             $this->applyTemplate();
             $this->refreshPreview();
         }
@@ -102,12 +100,12 @@ class Form extends Component
         try {
             if ($this->settlementId) {
                 $settlement = CenterSettlement::findOrFail($this->settlementId);
-                $settlement = $service->updateDraft($settlement, [
+                $settlement = $service->updateSettlement($settlement, [
                     ...$data,
                     'notes' => $data['notes'] ?? null,
                 ]);
             } else {
-                $settlement = $service->createDraft([
+                $settlement = $service->createSettlement([
                     ...$data,
                     'notes' => $data['notes'] ?? null,
                 ]);
@@ -128,6 +126,7 @@ class Form extends Component
         if (! $this->center_id || ! $this->period_from || ! $this->period_to) {
             $this->previewTotals = $this->emptyTotals();
             $this->previewCount = 0;
+            $this->previewRows = [];
             return;
         }
 
@@ -146,6 +145,18 @@ class Form extends Component
 
         $this->previewCount = $intakes->count();
         $this->previewTotals = app(CenterSettlementService::class)->calculateTotals($intakes);
+        $this->previewRows = $intakes->map(function (MilkIntake $intake) {
+            return [
+                'id' => $intake->id,
+                'date' => $intake->date?->toDateString(),
+                'shift' => $intake->shift,
+                'milk_type' => $intake->milk_type,
+                'qty_ltr' => $intake->qty_ltr,
+                'fat_pct' => $intake->fat_pct,
+                'snf_pct' => $intake->snf_pct,
+                'center_settlement_id' => $intake->center_settlement_id,
+            ];
+        })->toArray();
     }
 
     private function applyTemplate(): void

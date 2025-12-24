@@ -99,7 +99,12 @@ class MilkIntake extends Model
 
     public function isPartOfFinalSettlement(): bool
     {
-        return $this->centerSettlement && $this->centerSettlement->status === CenterSettlement::STATUS_FINAL && $this->centerSettlement->is_locked;
+        return $this->isPartOfLockedSettlement();
+    }
+
+    public function isPartOfLockedSettlement(): bool
+    {
+        return $this->centerSettlement && $this->centerSettlement->is_locked;
     }
 
     public static function computeMetrics(
