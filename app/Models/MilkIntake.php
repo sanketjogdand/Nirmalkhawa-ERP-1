@@ -23,6 +23,7 @@ class MilkIntake extends Model
         'snf_pct',
         'rate_per_ltr',
         'commission_policy_id',
+        'center_settlement_id',
         'commission_amount',
         'net_amount',
         'amount',
@@ -53,6 +54,7 @@ class MilkIntake extends Model
         'manual_rate_at' => 'datetime',
         'locked_at' => 'datetime',
         'is_locked' => 'boolean',
+        'center_settlement_id' => 'integer',
     ];
 
     public const SHIFT_MORNING = 'MORNING';
@@ -63,6 +65,11 @@ class MilkIntake extends Model
     public function center(): BelongsTo
     {
         return $this->belongsTo(Center::class);
+    }
+
+    public function centerSettlement(): BelongsTo
+    {
+        return $this->belongsTo(CenterSettlement::class);
     }
 
     public function manualRateUser(): BelongsTo
@@ -83,6 +90,16 @@ class MilkIntake extends Model
     public function scopeCalculated($query)
     {
         return $query->where('rate_status', self::STATUS_CALCULATED);
+    }
+
+    public function isSettled(): bool
+    {
+        return (bool) $this->center_settlement_id;
+    }
+
+    public function isPartOfFinalSettlement(): bool
+    {
+        return $this->centerSettlement && $this->centerSettlement->status === CenterSettlement::STATUS_FINAL && $this->centerSettlement->is_locked;
     }
 
     public static function computeMetrics(
@@ -131,6 +148,6 @@ class MilkIntake extends Model
         $this->kg_snf = $metrics['kg_snf'];
         $this->amount = $metrics['amount'];
         $this->commission_amount = $commissionAmount ?? $this->commission_amount ?? 0;
-        $this->net_amount = ($this->amount ?? 0) - ($this->commission_amount ?? 0);
+        $this->net_amount = ($this->amount ?? 0) + ($this->commission_amount ?? 0);
     }
 }

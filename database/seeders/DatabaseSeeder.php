@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             RegionSeeder::class,
             UomSeeder::class,
             ProductSeeder::class,
+            SettlementPeriodTemplateSeeder::class,
             // add any other seeders here
         ]);
     }

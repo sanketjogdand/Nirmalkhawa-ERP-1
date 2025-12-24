@@ -407,11 +407,19 @@
                 </flux:navlist.group>
             </flux:navlist>
 
-            @can('center.view')
-                <flux:navlist.group expandable :heading="__('Centers')" class="lg:grid" :expanded="request()->routeIs('centers.*')">
-                    <flux:navlist.item :href="route('centers.view')" :current="request()->routeIs('centers.*')" wire:navigate>{{ __('Centers') }}</flux:navlist.item>
+            @if(auth()->user()->can('center.view') || auth()->user()->can('centersettlement.view'))
+                <flux:navlist.group expandable :heading="__('Centers')" class="lg:grid" :expanded="request()->routeIs(['centers.*','center-settlements.*','settlement-templates'])">
+                    @can('center.view')
+                        <flux:navlist.item :href="route('centers.view')" :current="request()->routeIs('centers.*')" wire:navigate>{{ __('Centers') }}</flux:navlist.item>
+                    @endcan
+                    @can('centersettlement.view')
+                        <flux:navlist.item :href="route('center-settlements.view')" :current="request()->routeIs('center-settlements.*')" wire:navigate>{{ __('Center Settlements') }}</flux:navlist.item>
+                    @endcan
+                    @can('settlementtemplate.manage')
+                        <flux:navlist.item :href="route('settlement-templates')" :current="request()->routeIs('settlement-templates')" wire:navigate>{{ __('Settlement Period Templates') }}</flux:navlist.item>
+                    @endcan
                 </flux:navlist.group>
-            @endcan
+            @endif
             @canany(['ratechart.view', 'commissionpolicy.view'])
                 <flux:navlist.group expandable :heading="__('Rates & Commission')" class="lg:grid" :expanded="request()->routeIs(['rate-charts.*','commission-*'])">
                     @can('ratechart.view')

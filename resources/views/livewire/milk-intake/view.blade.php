@@ -104,7 +104,9 @@
                     @php
                         $highlight = $row->rate_per_ltr === null || $row->rate_per_ltr == 0;
                         $canUnlock = auth()->user()->can('milkintake.unlock');
-                        $checkboxDisabled = $row->is_locked && ! $canUnlock;
+                        $inSettlement = $row->center_settlement_id !== null;
+                        $settlementLocked = $row->centerSettlement && $row->centerSettlement->is_locked && $row->centerSettlement->status === \App\Models\CenterSettlement::STATUS_FINAL;
+                        $checkboxDisabled = $settlementLocked || ($row->is_locked && ! $canUnlock);
                     @endphp
                     <tr @if($highlight) style="background-color:#fff3cd;" @endif>
                         <td class="px-4 py-2 border dark:border-zinc-700">
@@ -114,6 +116,9 @@
                         <td class="px-4 py-2 border dark:border-zinc-700">
                             {{ $row->center?->name }}
                             <div style="font-size:12px; color:gray;">{{ $row->center?->code }}</div>
+                            @if($inSettlement)
+                                <div style="font-size:12px; color:#f97316;">Settlement: {{ $row->centerSettlement?->settlement_no }} ({{ $row->centerSettlement?->status }})</div>
+                            @endif
                         </td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $row->shift }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $row->milk_type }}</td>
@@ -152,31 +157,33 @@
                         </td>
                         <td class="px-4 py-2 border dark:border-zinc-700" style="white-space:nowrap;">
                             @php $actions = []; @endphp
-                            @can('milkintake.update')
-                                @if(! $row->is_locked)
-                                    @php $actions[] = '<a href="'.route('milk-intakes.edit', $row->id).'" class="action-link" wire:navigate>Edit</a>'; @endphp
-                                @endif
-                            @endcan
-                            @can('milkintake.rate.override')
-                                @if(! $row->is_locked)
-                                    @php $actions[] = '<button type="button" class="action-link" wire:click="openOverride('.$row->id.')" style="border:none; background:transparent; padding:0;">Manual Rate</button>'; @endphp
-                                @endif
-                            @endcan
-                            @can('milkintake.lock')
-                                @if(! $row->is_locked)
-                                    @php $actions[] = '<button type="button" class="action-link" wire:click="confirmLock('.$row->id.')" style="border:none; background:transparent; padding:0;">Lock</button>'; @endphp
-                                @endif
-                            @endcan
-                            @can('milkintake.unlock')
-                                @if($row->is_locked)
-                                    @php $actions[] = '<button type="button" class="action-link" wire:click="confirmUnlock('.$row->id.')" style="border:none; background:transparent; padding:0;">Unlock</button>'; @endphp
-                                @endif
-                            @endcan
-                            @can('milkintake.delete')
-                                @if(! $row->is_locked)
-                                    @php $actions[] = '<button type="button" class="action-link" wire:click="confirmDelete('.$row->id.')" style="border:none; background:transparent; padding:0;">Delete</button>'; @endphp
-                                @endif
-                            @endcan
+                            @if(! $settlementLocked)
+                                @can('milkintake.update')
+                                    @if(! $row->is_locked)
+                                        @php $actions[] = '<a href="'.route('milk-intakes.edit', $row->id).'" class="action-link" wire:navigate>Edit</a>'; @endphp
+                                    @endif
+                                @endcan
+                                @can('milkintake.rate.override')
+                                    @if(! $row->is_locked)
+                                        @php $actions[] = '<button type="button" class="action-link" wire:click="openOverride('.$row->id.')" style="border:none; background:transparent; padding:0;">Manual Rate</button>'; @endphp
+                                    @endif
+                                @endcan
+                                @can('milkintake.lock')
+                                    @if(! $row->is_locked)
+                                        @php $actions[] = '<button type="button" class="action-link" wire:click="confirmLock('.$row->id.')" style="border:none; background:transparent; padding:0;">Lock</button>'; @endphp
+                                    @endif
+                                @endcan
+                                @can('milkintake.unlock')
+                                    @if($row->is_locked)
+                                        @php $actions[] = '<button type="button" class="action-link" wire:click="confirmUnlock('.$row->id.')" style="border:none; background:transparent; padding:0;">Unlock</button>'; @endphp
+                                    @endif
+                                @endcan
+                                @can('milkintake.delete')
+                                    @if(! $row->is_locked)
+                                        @php $actions[] = '<button type="button" class="action-link" wire:click="confirmDelete('.$row->id.')" style="border:none; background:transparent; padding:0;">Delete</button>'; @endphp
+                                    @endif
+                                @endcan
+                            @endif
 
                             <span style="display:inline-flex; align-items:center; gap:8px; white-space:nowrap;">
                                 @foreach($actions as $index => $action)
@@ -185,6 +192,9 @@
                                         <span aria-hidden="true">|</span>
                                     @endif
                                 @endforeach
+                                @if(empty($actions) && $settlementLocked)
+                                    <span style="color:#f97316;">Finalized</span>
+                                @endif
                             </span>
                         </td>
                     </tr>

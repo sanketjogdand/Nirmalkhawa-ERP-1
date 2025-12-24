@@ -43,6 +43,10 @@ use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
 use App\Livewire\RateChart\View as RateChartView;
+use App\Livewire\CenterSettlement\View as CenterSettlementView;
+use App\Livewire\CenterSettlement\Form as CenterSettlementForm;
+use App\Livewire\CenterSettlement\Show as CenterSettlementShow;
+use App\Livewire\SettlementTemplate\View as SettlementTemplateView;
 use App\Livewire\CommissionPolicy\View as CommissionPolicyView;
 use App\Livewire\CommissionPolicy\Form as CommissionPolicyForm;
 use App\Livewire\CommissionPolicy\Assign as CommissionAssignment;
@@ -119,6 +123,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:milkintake.update')
         ->whereNumber('milkIntake')
         ->name('milk-intakes.edit');
+
+    Route::get('center-settlements/create', CenterSettlementForm::class)
+        ->middleware('permission:centersettlement.create')
+        ->name('center-settlements.create');
+
+    Route::get('center-settlements/{settlement}/edit', CenterSettlementForm::class)
+        ->middleware('permission:centersettlement.update')
+        ->whereNumber('settlement')
+        ->name('center-settlements.edit');
+
+    Route::middleware('permission:centersettlement.view')->group(function () {
+        Route::get('center-settlements', CenterSettlementView::class)->name('center-settlements.view');
+        Route::get('center-settlements/{settlement}', CenterSettlementShow::class)
+            ->whereNumber('settlement')
+            ->name('center-settlements.show');
+    });
+
+    Route::get('settlement-templates', SettlementTemplateView::class)
+        ->middleware('permission:settlementtemplate.manage')
+        ->name('settlement-templates');
 
     Route::middleware('permission:product.view')->group(function () {
         Route::get('products', ProductView::class)->name('products.view');

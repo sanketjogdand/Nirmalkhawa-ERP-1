@@ -20,7 +20,7 @@
         </div>
         <div class="form-group">
             <label for="date">Date</label>
-            <input id="date" type="date" wire:model.live="date" class="input-field">
+            <input id="date" type="date" wire:model.live="date" class="input-field" autofocus>
             @error('date') <span class="text-red-500" style="color:red;">{{ $message }}</span> @enderror
         </div>
         <div class="form-group">

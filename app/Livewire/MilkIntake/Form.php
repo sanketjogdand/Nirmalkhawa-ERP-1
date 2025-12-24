@@ -3,6 +3,7 @@
 namespace App\Livewire\MilkIntake;
 
 use App\Models\Center;
+use App\Models\CenterSettlement;
 use App\Models\MilkIntake;
 use App\Models\StockLedger;
 use App\Services\MilkRateCalculator;
@@ -51,9 +52,7 @@ class Form extends Component
             $record = MilkIntake::findOrFail($milkIntake);
             $this->authorize('milkintake.update');
 
-            if ($record->is_locked) {
-                abort(403, 'Milk intake is locked and cannot be edited.');
-            }
+            $this->abortIfSettled($record);
 
             $this->milkIntakeId = $record->id;
             $this->fill($record->only([
@@ -145,16 +144,14 @@ class Form extends Component
             'rate_status' => $this->keepManualRate ? MilkIntake::STATUS_MANUAL : MilkIntake::STATUS_CALCULATED,
             'commission_policy_id' => $commission['commission_policy_id'],
             'commission_amount' => $commission['commission_amount'],
-            'net_amount' => ($metrics['amount'] ?? 0) - $commission['commission_amount'],
+            'net_amount' => ($metrics['amount'] ?? 0) + $commission['commission_amount'],
         ]);
 
         DB::transaction(function () use ($payload, $inventoryService) {
             if ($this->milkIntakeId) {
                 $record = MilkIntake::findOrFail($this->milkIntakeId);
 
-                if ($record->is_locked) {
-                    abort(403, 'Milk intake is locked and cannot be edited.');
-                }
+                $this->abortIfSettled($record);
 
                 $record->update($payload);
                 $inventoryService->reverseReference(MilkIntake::class, $record->id, 'Milk intake updated - reversal');
@@ -176,6 +173,22 @@ class Form extends Component
     {
         return view('livewire.milk-intake.form')
             ->with(['title_name' => $this->title ?? 'Milk Intake']);
+    }
+
+    private function abortIfSettled(MilkIntake $intake): void
+    {
+        if ($intake->center_settlement_id) {
+            $settlement = $intake->centerSettlement;
+            if ($settlement && $settlement->is_locked && $settlement->status === CenterSettlement::STATUS_FINAL) {
+                abort(403, 'Milk intake is part of a finalized settlement and cannot be edited.');
+            }
+
+            // Allow edits only when the linked settlement is unlocked/draft
+        }
+
+        if ($intake->is_locked) {
+            abort(403, 'Milk intake is locked and cannot be edited.');
+        }
     }
 
     private function refreshRate(): void

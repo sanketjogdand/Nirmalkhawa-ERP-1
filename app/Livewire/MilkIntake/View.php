@@ -3,6 +3,7 @@
 namespace App\Livewire\MilkIntake;
 
 use App\Models\Center;
+use App\Models\CenterSettlement;
 use App\Models\MilkIntake;
 use App\Services\InventoryService;
 use App\Services\MilkRateCalculator;
@@ -103,8 +104,28 @@ class View extends Component
 
         $ids = $this->selected;
         if (! empty($ids)) {
-            $manualCount = MilkIntake::whereIn('id', $ids)->where('rate_status', MilkIntake::STATUS_MANUAL)->count();
-            $this->pendingApplyIds = $ids;
+            $eligibleIds = MilkIntake::whereIn('id', $ids)
+                ->where(function ($q) {
+                    $q->whereNull('center_settlement_id')
+                        ->orWhereHas('centerSettlement', function ($sq) {
+                            $sq->where('is_locked', false);
+                        });
+                })
+                ->pluck('id')
+                ->all();
+
+            $skipped = count($ids) - count($eligibleIds);
+            if ($skipped > 0) {
+                session()->flash('info', 'Some selected rows are already linked to settlements and were skipped.');
+            }
+
+            $this->pendingApplyIds = $eligibleIds;
+            if (empty($eligibleIds)) {
+                session()->flash('danger', 'No unsettled rows selected for rate application.');
+                return;
+            }
+
+            $manualCount = MilkIntake::whereIn('id', $eligibleIds)->where('rate_status', MilkIntake::STATUS_MANUAL)->count();
             if ($manualCount > 0) {
                 $this->showApplyModal = true;
                 return;
@@ -121,7 +142,13 @@ class View extends Component
         $this->authorize('milkintake.apply_ratechart');
 
         $query = $this->baseQuery()
-            ->where('is_locked', false);
+            ->where('is_locked', false)
+            ->where(function ($q) {
+                $q->whereNull('center_settlement_id')
+                    ->orWhereHas('centerSettlement', function ($sq) {
+                        $sq->where('is_locked', false);
+                    });
+            });
 
         if (! empty($this->pendingApplyIds)) {
             $query->whereIn('id', $this->pendingApplyIds);
@@ -186,11 +213,12 @@ class View extends Component
         $ids = $id ? [$id] : $this->selected;
         $this->pendingLockIds = MilkIntake::whereIn('id', $ids)
             ->where('is_locked', false)
+            ->whereNull('center_settlement_id')
             ->pluck('id')
             ->all();
 
         if (empty($this->pendingLockIds)) {
-            session()->flash('danger', 'No unlocked records selected for locking.');
+            session()->flash('danger', 'No unlocked, unsettled records selected for locking.');
             return;
         }
 
@@ -226,11 +254,12 @@ class View extends Component
         $ids = $id ? [$id] : $this->selected;
         $this->pendingUnlockIds = MilkIntake::whereIn('id', $ids)
             ->where('is_locked', true)
+            ->whereNull('center_settlement_id')
             ->pluck('id')
             ->all();
 
         if (empty($this->pendingUnlockIds)) {
-            session()->flash('danger', 'No locked records selected for unlocking.');
+            session()->flash('danger', 'No locked, unsettled records selected for unlocking.');
             return;
         }
 
@@ -265,6 +294,10 @@ class View extends Component
         $this->authorize('milkintake.rate.override');
         $intake = MilkIntake::findOrFail($id);
 
+        if ($this->preventIfSettled($intake)) {
+            return;
+        }
+
         if ($intake->is_locked) {
             session()->flash('danger', 'Locked records cannot be overridden.');
             return;
@@ -292,6 +325,10 @@ class View extends Component
         ]);
 
         $intake = MilkIntake::findOrFail($this->overrideId);
+
+        if ($this->preventIfSettled($intake)) {
+            return;
+        }
 
         if ($intake->is_locked) {
             session()->flash('danger', 'Locked records cannot be overridden.');
@@ -333,6 +370,10 @@ class View extends Component
         $this->authorize('milkintake.delete');
         $intake = MilkIntake::findOrFail($id);
 
+        if ($this->preventIfSettled($intake)) {
+            return;
+        }
+
         if ($intake->is_locked) {
             session()->flash('danger', 'Unlock the intake before deleting.');
             return;
@@ -353,6 +394,12 @@ class View extends Component
 
         $intake = MilkIntake::findOrFail($this->pendingDeleteId);
 
+        if ($this->preventIfSettled($intake)) {
+            $this->showDeleteModal = false;
+            $this->pendingDeleteId = null;
+            return;
+        }
+
         if ($intake->is_locked) {
             session()->flash('danger', 'Unlock the intake before deleting.');
             $this->showDeleteModal = false;
@@ -370,9 +417,23 @@ class View extends Component
         session()->flash('success', 'Milk intake deleted.');
     }
 
+    private function preventIfSettled(MilkIntake $intake): bool
+    {
+        if ($intake->center_settlement_id) {
+            $settlement = $intake->centerSettlement;
+            if ($settlement && $settlement->is_locked && $settlement->status === CenterSettlement::STATUS_FINAL) {
+                session()->flash('danger', 'Record is part of a finalized settlement and cannot be modified.');
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function baseQuery()
     {
-        return MilkIntake::with(['center', 'manualRateUser', 'lockedByUser'])
+        return MilkIntake::with(['center', 'manualRateUser', 'lockedByUser', 'centerSettlement'])
             ->when($this->search, function ($query) {
                 $query->whereHas('center', function ($q) {
                     $q->where('name', 'like', '%'.$this->search.'%')

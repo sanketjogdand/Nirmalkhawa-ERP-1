@@ -57,6 +57,11 @@ class Center extends Model
         return $this->hasMany(CenterCommissionAssignment::class);
     }
 
+    public function settlements(): HasMany
+    {
+        return $this->hasMany(CenterSettlement::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'Active');
