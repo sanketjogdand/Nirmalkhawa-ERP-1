@@ -62,6 +62,11 @@ class Center extends Model
         return $this->hasMany(CenterSettlement::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(CenterPayment::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'Active');

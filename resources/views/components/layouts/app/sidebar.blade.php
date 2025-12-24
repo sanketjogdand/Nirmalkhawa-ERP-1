@@ -407,13 +407,19 @@
                 </flux:navlist.group>
             </flux:navlist>
 
-            @if(auth()->user()->can('center.view') || auth()->user()->can('centersettlement.view'))
-                <flux:navlist.group expandable :heading="__('Centers')" class="lg:grid" :expanded="request()->routeIs(['centers.*','center-settlements.*','settlement-templates'])">
+            @if(auth()->user()->can('center.view') || auth()->user()->can('centersettlement.view') || auth()->user()->can('centerpayment.view'))
+                <flux:navlist.group expandable :heading="__('Centers')" class="lg:grid" :expanded="request()->routeIs(['centers.*','milk-intakes.*','center-settlements.*','center-payments.*','settlement-templates'])">
                     @can('center.view')
                         <flux:navlist.item :href="route('centers.view')" :current="request()->routeIs('centers.*')" wire:navigate>{{ __('Centers') }}</flux:navlist.item>
                     @endcan
+                    @can('milkintake.view')
+                        <flux:navlist.item :href="route('milk-intakes.view')" :current="request()->routeIs('milk-intakes.*')" wire:navigate>{{ __('Milk Intake') }}</flux:navlist.item>
+                    @endcan
                     @can('centersettlement.view')
                         <flux:navlist.item :href="route('center-settlements.view')" :current="request()->routeIs('center-settlements.*')" wire:navigate>{{ __('Center Settlements') }}</flux:navlist.item>
+                    @endcan
+                    @can('centerpayment.view')
+                        <flux:navlist.item :href="route('center-payments.view')" :current="request()->routeIs('center-payments.*')" wire:navigate>{{ __('Center Payments') }}</flux:navlist.item>
                     @endcan
                     @can('settlementtemplate.manage')
                         <flux:navlist.item :href="route('settlement-templates')" :current="request()->routeIs('settlement-templates')" wire:navigate>{{ __('Settlement Period Templates') }}</flux:navlist.item>
@@ -432,11 +438,6 @@
                     @endcan
                 </flux:navlist.group>
             @endcanany
-            @can('milkintake.view')
-                <flux:navlist.group expandable :heading="__('Milk Intake')" class="lg:grid" :expanded="request()->routeIs('milk-intakes.*')">
-                    <flux:navlist.item :href="route('milk-intakes.view')" :current="request()->routeIs('milk-intakes.*')" wire:navigate>{{ __('Milk Intake') }}</flux:navlist.item>
-                </flux:navlist.group>
-            @endcan
             @canany(['product.view', 'recipe.view', 'production.view'])
                 <flux:navlist.group expandable :heading="__('Production')" class="lg:grid" :expanded="request()->routeIs(['products.*', 'recipes.*', 'productions.*'])">
                     @can('product.view')

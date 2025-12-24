@@ -6,6 +6,9 @@ use App\Livewire\Settings\Profile;
 use App\Livewire\Center\Form as CenterForm;
 use App\Livewire\Center\Show as CenterShow;
 use App\Livewire\Center\View as CenterView;
+use App\Livewire\CenterPayment\Form as CenterPaymentForm;
+use App\Livewire\CenterPayment\Show as CenterPaymentShow;
+use App\Livewire\CenterPayment\View as CenterPaymentView;
 use App\Livewire\Customer\Form as CustomerForm;
 use App\Livewire\Customer\Show as CustomerShow;
 use App\Livewire\Customer\View as CustomerView;
@@ -139,6 +142,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereNumber('settlement')
             ->name('center-settlements.show');
     });
+
+    Route::middleware('permission:centerpayment.view')->group(function () {
+        Route::get('center-payments', CenterPaymentView::class)->name('center-payments.view');
+        Route::get('center-payments/{payment}', CenterPaymentShow::class)
+            ->whereNumber('payment')
+            ->name('center-payments.show');
+    });
+    Route::get('center-payments/create', CenterPaymentForm::class)
+        ->middleware('permission:centerpayment.create')
+        ->name('center-payments.create');
+    Route::get('center-payments/{payment}/edit', CenterPaymentForm::class)
+        ->middleware('permission:centerpayment.update')
+        ->whereNumber('payment')
+        ->name('center-payments.edit');
 
     Route::get('settlement-templates', SettlementTemplateView::class)
         ->middleware('permission:settlementtemplate.manage')
