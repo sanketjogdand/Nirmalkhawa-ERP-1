@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('hsn_code', 50)->nullable();
             $table->decimal('default_gst_rate', 5, 2)->nullable();
             $table->string('category', 100)->nullable();
+            $table->boolean('is_packing')->default(false);
             $table->boolean('can_purchase')->default(true);
             $table->boolean('can_produce')->default(true);
             $table->boolean('can_consume')->default(true);

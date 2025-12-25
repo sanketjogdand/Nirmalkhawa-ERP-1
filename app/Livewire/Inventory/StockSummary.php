@@ -20,6 +20,7 @@ class StockSummary extends Component
     public $perPage = 25;
     public $search = '';
     public $status = '';
+    public $filter_is_packing = '';
     public $filter_can_stock = '1';
     public $filter_can_sell = '';
     public $filter_can_consume = '';
@@ -31,7 +32,7 @@ class StockSummary extends Component
 
     public function updating($field): void
     {
-        if (in_array($field, ['search', 'status', 'filter_can_stock', 'filter_can_sell', 'filter_can_consume'])) {
+        if (in_array($field, ['search', 'status', 'filter_is_packing', 'filter_can_stock', 'filter_can_sell', 'filter_can_consume'])) {
             $this->resetPage();
         }
     }
@@ -56,6 +57,7 @@ class StockSummary extends Component
                 });
             })
             ->when($this->status !== '', fn ($q) => $q->where('products.is_active', (bool) ((int) $this->status)))
+            ->when($this->filter_is_packing !== '', fn ($q) => $q->where('products.is_packing', (bool) ((int) $this->filter_is_packing)))
             ->when($this->filter_can_stock !== '', fn ($q) => $q->where('products.can_stock', (bool) ((int) $this->filter_can_stock)))
             ->when($this->filter_can_sell !== '', fn ($q) => $q->where('products.can_sell', (bool) ((int) $this->filter_can_sell)))
             ->when($this->filter_can_consume !== '', fn ($q) => $q->where('products.can_consume', (bool) ((int) $this->filter_can_consume)))

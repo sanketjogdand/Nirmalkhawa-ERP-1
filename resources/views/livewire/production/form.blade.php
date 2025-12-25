@@ -89,10 +89,11 @@
                                 <td class="px-4 py-2 border dark:border-zinc-700">
                                     <select wire:model.live="inputs.{{ $index }}.material_product_id" class="input-field" disabled>
                                         <option value="">Select material</option>
-                                        @foreach($outputProducts as $product)
-                                            @if($product->can_consume || $product->id == ($input['material_product_id'] ?? null))
-                                                <option value="{{ $product->id }}">{{ $product->name }} @if($product->code) ({{ $product->code }}) @endif</option>
-                                            @endif
+                                        @foreach($consumableProducts as $product)
+                                            <option value="{{ $product->id }}">
+                                                {{ $product->name }} @if($product->code) ({{ $product->code }}) @endif
+                                                @if($product->is_packing) [Packing] @endif
+                                            </option>
                                         @endforeach
                                     </select>
                                     @error('inputs.'.$index.'.material_product_id') <span style="color:red;">{{ $message }}</span> @enderror

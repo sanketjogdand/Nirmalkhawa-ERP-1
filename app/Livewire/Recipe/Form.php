@@ -181,6 +181,18 @@ class Form extends Component
 
         $data['is_active'] = (bool) $data['is_active'];
 
+        $materialIds = collect($data['items'])->pluck('material_product_id')->filter()->unique();
+        if ($materialIds->isNotEmpty()) {
+            $materialMap = Product::whereIn('id', $materialIds)->get(['id', 'can_consume'])->keyBy('id');
+            foreach ($data['items'] as $index => $item) {
+                $product = $materialMap->get($item['material_product_id']);
+                if (! $product || ! $product->can_consume) {
+                    $this->addError('items.'.$index.'.material_product_id', 'Selected product cannot be consumed.');
+                    return;
+                }
+            }
+        }
+
         $yieldBaseCount = collect($data['items'])->where('is_yield_base', true)->count();
         if ($yieldBaseCount > 1) {
             session()->flash('warning', 'Multiple yield base items selected. Only one is recommended.');
@@ -239,9 +251,9 @@ class Form extends Component
     public function render()
     {
         $outputProducts = $this->outputProductOptions();
-        $materialProducts = $this->materialProductOptions();
+        $materialOptions = $this->materialProductOptions();
 
-        return view('livewire.recipe.form', compact('outputProducts', 'materialProducts'))
+        return view('livewire.recipe.form', compact('outputProducts', 'materialOptions'))
             ->with(['title_name' => $this->title ?? 'Recipes']);
     }
 
@@ -309,7 +321,7 @@ class Form extends Component
             ->get(['id', 'name', 'code', 'uom', 'can_produce']);
     }
 
-    private function materialProductOptions()
+    private function materialProductOptions(): array
     {
         $selectedIds = collect($this->items)
             ->pluck('material_product_id')
@@ -317,18 +329,24 @@ class Form extends Component
             ->values()
             ->all();
 
-        return Product::query()
-            ->when($this->materialSearch, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('name', 'like', '%'.$this->materialSearch.'%')
-                        ->orWhere('code', 'like', '%'.$this->materialSearch.'%');
-                });
-            })
-            ->when(! $this->materialSearch, fn ($q) => $q->where('can_consume', true))
-            ->when(! empty($selectedIds), fn ($q) => $q->orWhereIn('id', $selectedIds))
-            ->orderBy('name')
-            ->limit(25)
-            ->get(['id', 'name', 'code', 'uom', 'can_consume']);
+        $builder = function () use ($selectedIds) {
+            return Product::query()
+                ->when($this->materialSearch, function ($query) {
+                    $query->where(function ($q) {
+                        $q->where('name', 'like', '%'.$this->materialSearch.'%')
+                            ->orWhere('code', 'like', '%'.$this->materialSearch.'%');
+                    });
+                })
+                ->where('can_consume', true)
+                ->when(! empty($selectedIds), fn ($q) => $q->orWhereIn('id', $selectedIds))
+                ->orderBy('name')
+                ->limit(25);
+        };
+
+        return [
+            'materials' => $builder()->where('is_packing', false)->get(['id', 'name', 'code', 'uom', 'can_consume', 'is_packing']),
+            'packingMaterials' => $builder()->where('is_packing', true)->get(['id', 'name', 'code', 'uom', 'can_consume', 'is_packing']),
+        ];
     }
 
     private function canUseProductForOutput(Product $product): bool

@@ -188,6 +188,9 @@ class DispatchService
             if (! $product) {
                 throw new RuntimeException('Invalid product selected.');
             }
+            if (! $product->can_sell) {
+                throw new RuntimeException('Product '.$product->name.' cannot be dispatched.');
+            }
 
             if ($line['sale_mode'] === DispatchLine::MODE_PACK) {
                 $packSize = $packSizes[$line['pack_size_id']] ?? null;

@@ -16,6 +16,7 @@ class View extends Component
     public $perPage = 25;
     public $search = '';
     public $status = '';
+    public $filter_is_packing = '';
     public $filter_can_purchase = '';
     public $filter_can_produce = '';
     public $filter_can_consume = '';
@@ -32,6 +33,7 @@ class View extends Component
         if (in_array($field, [
             'search',
             'status',
+            'filter_is_packing',
             'filter_can_purchase',
             'filter_can_produce',
             'filter_can_consume',
@@ -57,6 +59,7 @@ class View extends Component
                 });
             })
             ->when($this->status !== '', fn ($q) => $q->where('is_active', (bool) ((int) $this->status)))
+            ->when($this->filter_is_packing !== '', fn ($q) => $q->where('is_packing', (bool) ((int) $this->filter_is_packing)))
             ->when($this->filter_can_purchase !== '', fn ($q) => $q->where('can_purchase', (bool) ((int) $this->filter_can_purchase)))
             ->when($this->filter_can_produce !== '', fn ($q) => $q->where('can_produce', (bool) ((int) $this->filter_can_produce)))
             ->when($this->filter_can_consume !== '', fn ($q) => $q->where('can_consume', (bool) ((int) $this->filter_can_consume)))

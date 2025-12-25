@@ -163,6 +163,17 @@ class ProductionService
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
         foreach ($inputs as $input) {
+            $product = $products[$input['material_product_id']] ?? null;
+            if (! $product) {
+                throw new RuntimeException('Invalid material selected.');
+            }
+            if (! $product->can_consume) {
+                throw new RuntimeException('Material '.$product->name.' is not allowed for consumption.');
+            }
+            if (! $product->can_stock) {
+                continue;
+            }
+
             $qty = (float) ($input['actual_qty_used'] ?? 0);
             if ($qty <= 0) {
                 continue;
@@ -196,7 +207,15 @@ class ProductionService
         $inputs = $batch->inputs;
 
         foreach ($inputs as $input) {
+            $product = $input->materialProduct;
+            if (! $product || ! $product->can_consume) {
+                throw new RuntimeException('Material product is missing or not consumable.');
+            }
             if ($input->actual_qty_used === null || $input->actual_qty_used <= 0) {
+                continue;
+            }
+
+            if (! $product->can_stock) {
                 continue;
             }
 

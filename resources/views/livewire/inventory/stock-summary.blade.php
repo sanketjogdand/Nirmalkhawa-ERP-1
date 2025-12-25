@@ -18,6 +18,14 @@
             </select>
         </div>
         <div class="form-group">
+            <label for="filter_is_packing">Packing Material</label>
+            <select id="filter_is_packing" wire:model.live="filter_is_packing" class="input-field">
+                <option value="">All</option>
+                <option value="1">Yes</option>
+                <option value="0">No</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label for="filter_can_stock">Can Stock</label>
             <select id="filter_can_stock" wire:model.live="filter_can_stock" class="input-field">
                 <option value="">All</option>
@@ -80,7 +88,12 @@
                         $totalWeight = $product->stock_balance + $packedTotal;
                     @endphp
                     <tr>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $product->name }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">
+                            {{ $product->name }}
+                            @if($product->is_packing)
+                                <span style="background:#dbeafe; color:#111; padding:2px 6px; border-radius:4px; font-size:12px; margin-left:6px;">Packing</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $product->code }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $product->uom }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700" style="font-weight:600;">{{ number_format($totalWeight, 3) }}</td>

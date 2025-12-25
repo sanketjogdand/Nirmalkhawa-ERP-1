@@ -200,6 +200,9 @@ class SalesInvoiceService
             if (! $product) {
                 throw new RuntimeException('Invalid product selected.');
             }
+            if (! $product->can_sell) {
+                throw new RuntimeException('Product '.$product->name.' cannot be sold.');
+            }
 
             if ($line['rate_per_kg'] === null || $line['rate_per_kg'] <= 0) {
                 throw new RuntimeException('Rate per kg is required for all lines.');

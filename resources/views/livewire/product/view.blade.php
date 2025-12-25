@@ -23,6 +23,14 @@
             </select>
         </div>
         <div class="form-group">
+            <label for="filter_is_packing">Packing Material</label>
+            <select id="filter_is_packing" wire:model.live="filter_is_packing" class="input-field">
+                <option value="">All</option>
+                <option value="1">Yes</option>
+                <option value="0">No</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label for="filter_can_purchase">Can Purchase</label>
             <select id="filter_can_purchase" wire:model.live="filter_can_purchase" class="input-field">
                 <option value="">All</option>
@@ -82,6 +90,7 @@
                     <th class="px-4 py-2 border dark:border-zinc-700">Code</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">UOM</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Category</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Packing Material</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Usage</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Status</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Actions</th>
@@ -97,7 +106,11 @@
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $product->uom }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $product->category }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">
+                            {{ $product->is_packing ? 'Yes' : 'No' }}
+                        </td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">
                             <span style="display:inline-flex; flex-wrap:wrap; gap:6px;">
+                                @if($product->is_packing)<span style="background:#dbeafe; color:#111; padding:2px 6px; border-radius:4px; font-size:12px;">Packing</span>@endif
                                 @if($product->can_purchase)<span style="background:#e5e7eb; color:#111; padding:2px 6px; border-radius:4px; font-size:12px;">Purchase</span>@endif
                                 @if($product->can_produce)<span style="background:#e5e7eb; color:#111; padding:2px 6px; border-radius:4px; font-size:12px;">Produce</span>@endif
                                 @if($product->can_consume)<span style="background:#e5e7eb; color:#111; padding:2px 6px; border-radius:4px; font-size:12px;">Consume</span>@endif
@@ -114,7 +127,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No products found.</td>
+                        <td colspan="8" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No products found.</td>
                     </tr>
                 @endforelse
             </tbody>

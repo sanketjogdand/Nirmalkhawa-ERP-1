@@ -48,6 +48,11 @@
             </select>
             @error('default_gst_rate') <span style="color:red;">{{ $message }}</span> @enderror
         </div>
+        <div class="form-group">
+            <label><input type="checkbox" wire:model.live="is_packing"> Is Packing Material?</label>
+            <small style="color:gray;">Defaults usage flags to purchase/stock/consume on, sell/produce off (you can override).</small>
+            @error('is_packing') <span style="color:red;">{{ $message }}</span> @enderror
+        </div>
 
         <div class="form-group span-3" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
             <label style="font-weight:600; width:140px;">Usage Flags</label>

@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\PackInventory;
 use App\Models\PackSize;
+use App\Models\PackSizeMaterial;
 use App\Models\Packing;
+use App\Models\Product;
 use App\Models\StockLedger;
 use App\Models\Unpacking;
 use Carbon\Carbon;
@@ -30,6 +32,38 @@ class PackingService
             $availableBulk = $inventoryService->getCurrentStock($productId);
             if ($totalBulkQty > $availableBulk) {
                 throw new RuntimeException('Insufficient bulk stock. Required '.$totalBulkQty.' exceeds available '.$availableBulk.'.');
+            }
+
+            $materialRequirements = [];
+            foreach ($cleanLines as $line) {
+                $packSize = $packSizes[$line['pack_size_id']];
+                foreach ($packSize->packMaterials as $material) {
+                    $required = round((float) $material->qty_per_pack * (int) $line['pack_count'], 3);
+                    if ($required <= 0) {
+                        continue;
+                    }
+
+                    $product = $material->materialProduct;
+                    if (! $product || ! $product->is_packing || ! $product->can_consume || ! $product->can_stock) {
+                        throw new RuntimeException('Packing material on BOM is invalid. Please fix the pack size BOM.');
+                    }
+
+                    $materialRequirements[$material->material_product_id] = ($materialRequirements[$material->material_product_id] ?? 0) + $required;
+                }
+            }
+
+            $materialProducts = collect();
+            if (! empty($materialRequirements)) {
+                $materialProducts = Product::whereIn('id', array_keys($materialRequirements))->get()->keyBy('id');
+
+                foreach ($materialRequirements as $materialId => $requiredQty) {
+                    $product = $materialProducts[$materialId] ?? null;
+                    $available = $inventoryService->getCurrentStock($materialId);
+                    if ($requiredQty > $available) {
+                        $name = $product?->name ?: ('Product ID '.$materialId);
+                        throw new RuntimeException("Insufficient packing material {$name}. Need {$requiredQty}, available {$available}.");
+                    }
+                }
             }
 
             $packing = Packing::create([
@@ -73,7 +107,7 @@ class PackingService
             $inventoryService->postOut(
                 $productId,
                 $totalBulkQty,
-                StockLedger::TYPE_PACKING_OUT,
+                StockLedger::TYPE_PACKING_BULK_OUT,
                 [
                     'txn_datetime' => $txnTimestamp,
                     'reference_type' => Packing::class,
@@ -82,6 +116,23 @@ class PackingService
                     'created_by' => $payload['created_by'] ?? auth()->id(),
                 ]
             );
+
+            foreach ($materialRequirements as $materialId => $requiredQty) {
+                $product = $materialProducts[$materialId] ?? null;
+                $inventoryService->postOut(
+                    $materialId,
+                    $requiredQty,
+                    StockLedger::TYPE_PACKING_MATERIAL_OUT,
+                    [
+                        'txn_datetime' => $txnTimestamp,
+                        'reference_type' => Packing::class,
+                        'reference_id' => $packing->id,
+                        'remarks' => trim(($payload['remarks'] ?? 'Packing').' (Packing material: '.($product->name ?? 'Material').')'),
+                        'created_by' => $payload['created_by'] ?? auth()->id(),
+                        'uom' => $product->uom ?? null,
+                    ]
+                );
+            }
 
             return $packing->load('items.packSize', 'product');
         });
@@ -203,7 +254,8 @@ class PackingService
      */
     private function getPackSizes(int $productId, array $packSizeIds): Collection
     {
-        $packSizes = PackSize::where('product_id', $productId)
+        $packSizes = PackSize::with(['packMaterials.materialProduct'])
+            ->where('product_id', $productId)
             ->whereIn('id', $packSizeIds)
             ->get()
             ->keyBy('id');

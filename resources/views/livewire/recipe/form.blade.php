@@ -66,7 +66,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
                 <div>
                     <h3 style="margin:0; font-size:18px;">Recipe Items</h3>
-                    <small style="color:gray;">Type to search materials (defaults to consumables).</small>
+                    <small style="color:gray;">Type to search consumables; packing materials are listed separately.</small>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <input type="text" wire:model.live.debounce.300ms="materialSearch" class="input-field" placeholder="Search materials" style="width:220px;">
@@ -91,12 +91,24 @@
                                 <td class="px-4 py-2 border dark:border-zinc-700">
                                     <select wire:model.live="items.{{ $index }}.material_product_id" class="input-field">
                                         <option value="">Select material</option>
-                                        @foreach($materialProducts as $product)
-                                            <option value="{{ $product->id }}">
-                                                {{ $product->name }} @if($product->code) ({{ $product->code }}) @endif
-                                                @unless($product->can_consume) — override @endunless
-                                            </option>
-                                        @endforeach
+                                        @if(!empty($materialOptions['materials']) && $materialOptions['materials']->isNotEmpty())
+                                            <optgroup label="Materials">
+                                                @foreach($materialOptions['materials'] as $product)
+                                                    <option value="{{ $product->id }}">
+                                                        {{ $product->name }} @if($product->code) ({{ $product->code }}) @endif
+                                                    </option>
+                                                @endforeach
+                                            </optgroup>
+                                        @endif
+                                        @if(!empty($materialOptions['packingMaterials']) && $materialOptions['packingMaterials']->isNotEmpty())
+                                            <optgroup label="Packing Materials">
+                                                @foreach($materialOptions['packingMaterials'] as $product)
+                                                    <option value="{{ $product->id }}">
+                                                        {{ $product->name }} @if($product->code) ({{ $product->code }}) @endif
+                                                    </option>
+                                                @endforeach
+                                            </optgroup>
+                                        @endif
                                     </select>
                                     @error('items.'.$index.'.material_product_id') <span style="color:red;">{{ $message }}</span> @enderror
                                 </td>

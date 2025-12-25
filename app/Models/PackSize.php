@@ -43,6 +43,11 @@ class PackSize extends Model
         return $this->hasMany(UnpackingItem::class);
     }
 
+    public function packMaterials(): HasMany
+    {
+        return $this->hasMany(PackSizeMaterial::class);
+    }
+
     public function dispatchLines(): HasMany
     {
         return $this->hasMany(DispatchLine::class);

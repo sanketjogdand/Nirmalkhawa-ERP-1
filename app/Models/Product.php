@@ -18,6 +18,7 @@ class Product extends Model
         'hsn_code',
         'default_gst_rate',
         'category',
+        'is_packing',
         'can_purchase',
         'can_produce',
         'can_consume',
@@ -28,6 +29,7 @@ class Product extends Model
 
     protected $casts = [
         'default_gst_rate' => 'decimal:2',
+        'is_packing' => 'boolean',
         'can_purchase' => 'boolean',
         'can_produce' => 'boolean',
         'can_consume' => 'boolean',

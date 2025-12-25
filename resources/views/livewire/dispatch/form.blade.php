@@ -92,7 +92,10 @@
                             <select wire:model.live="lines.{{ $index }}.product_id" class="input-field" @if($isLocked) disabled @endif>
                                 <option value="">Select product</option>
                                 @foreach($products as $product)
-                                    <option value="{{ $product->id }}">{{ $product->name }}</option>
+                                    <option value="{{ $product->id }}">
+                                        {{ $product->name }} @if($product->code) ({{ $product->code }}) @endif
+                                        @if($product->is_packing) [Packing] @endif
+                                    </option>
                                 @endforeach
                             </select>
                             @error('lines.'.$index.'.product_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror

@@ -18,6 +18,8 @@ class StockLedger extends Model
     public const TYPE_PRODUCTION_OUT = 'PRODUCTION_OUT';
     public const TYPE_TRANSFER = 'TRANSFER';
     public const TYPE_PACKING_OUT = 'PACKING_OUT';
+    public const TYPE_PACKING_BULK_OUT = 'PACKING_BULK_OUT';
+    public const TYPE_PACKING_MATERIAL_OUT = 'PACKING_MATERIAL_OUT';
     public const TYPE_UNPACKING_IN = 'UNPACKING_IN';
     public const TYPE_DISPATCH_BULK_OUT = 'DISPATCH_BULK_OUT';
     public const TYPE_DISPATCH_PACK_OUT = 'DISPATCH_PACK_OUT';

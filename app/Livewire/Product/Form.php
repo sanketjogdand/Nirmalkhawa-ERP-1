@@ -22,6 +22,7 @@ class Form extends Component
     public $hsn_code;
     public $default_gst_rate;
     public $category;
+    public $is_packing = false;
     public $can_purchase = true;
     public $can_produce = true;
     public $can_consume = true;
@@ -45,6 +46,7 @@ class Form extends Component
                 'hsn_code',
                 'default_gst_rate',
                 'category',
+                'is_packing',
                 'can_purchase',
                 'can_produce',
                 'can_consume',
@@ -57,6 +59,17 @@ class Form extends Component
             if ($this->uoms->isNotEmpty()) {
                 $this->uom = $this->uom ?? $this->uoms->first()->name;
             }
+        }
+    }
+
+    public function updatedIsPacking($value): void
+    {
+        if ((bool) $value) {
+            $this->can_purchase = true;
+            $this->can_stock = true;
+            $this->can_consume = true;
+            $this->can_sell = false;
+            $this->can_produce = false;
         }
     }
 
@@ -97,6 +110,7 @@ class Form extends Component
             'hsn_code' => ['nullable', 'string', 'max:50'],
             'default_gst_rate' => ['nullable', Rule::in([0, 5, 18])],
             'category' => ['nullable', 'string', 'max:100'],
+            'is_packing' => ['boolean'],
             'can_purchase' => ['boolean'],
             'can_produce' => ['boolean'],
             'can_consume' => ['boolean'],

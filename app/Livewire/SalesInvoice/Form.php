@@ -294,6 +294,18 @@ class Form extends Component
             'lines.*.gst_rate_percent' => 'GST rate',
         ]);
 
+        $productIds = collect($data['lines'])->pluck('product_id')->filter()->unique();
+        if ($productIds->isNotEmpty()) {
+            $productMap = Product::whereIn('id', $productIds)->get(['id', 'can_sell'])->keyBy('id');
+            foreach ($data['lines'] as $index => $line) {
+                $product = $productMap->get((int) $line['product_id']);
+                if (! $product || ! $product->can_sell) {
+                    $this->addError('lines.'.$index.'.product_id', 'Selected product cannot be sold.');
+                    return;
+                }
+            }
+        }
+
         if (empty($data['lines'])) {
             $this->addError('form', 'Add at least one invoice line.');
             return;

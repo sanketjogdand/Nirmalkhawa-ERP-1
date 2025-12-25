@@ -27,7 +27,11 @@ class UnpackingForm extends Component
     public function mount(): void
     {
         $this->authorize('unpacking.create');
-        $this->products = Product::where('can_stock', true)->where('is_active', true)->orderBy('name')->get();
+        $this->products = Product::where('can_stock', true)
+            ->where('is_packing', false)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
         $this->date = now()->toDateString();
         $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
     }

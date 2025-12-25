@@ -30,6 +30,7 @@ class Form extends Component
     public array $stockWarnings = [];
 
     public $outputProducts;
+    public $consumableProducts;
     public $recipes;
 
     public bool $isLocked = false;
@@ -37,6 +38,7 @@ class Form extends Component
     public function mount($production = null): void
     {
         $this->outputProducts = Product::orderBy('name')->get();
+        $this->consumableProducts = Product::where('can_consume', true)->orderBy('name')->get();
 
         if ($production) {
             $record = ProductionBatch::with(['inputs', 'recipe', 'outputProduct'])->findOrFail($production);
@@ -144,6 +146,21 @@ class Form extends Component
         $this->syncInputsToRecipe();
 
         $data = $this->validate($this->rules());
+
+        $materialIds = collect($this->inputs)->pluck('material_product_id')->filter()->unique();
+        if ($materialIds->isNotEmpty()) {
+            $materialMap = Product::whereIn('id', $materialIds)->get(['id', 'can_consume'])->keyBy('id');
+            foreach ($this->inputs as $index => $input) {
+                if (! $input['material_product_id']) {
+                    continue;
+                }
+                $product = $materialMap->get((int) $input['material_product_id']);
+                if (! $product || ! $product->can_consume) {
+                    $this->addError('inputs.'.$index.'.material_product_id', 'Selected product cannot be consumed.');
+                    return;
+                }
+            }
+        }
 
         if (! collect($this->inputs)->contains(fn ($item) => $item['is_yield_base'] ?? false)) {
             $this->addError('inputs', 'Select one input as the yield base.');

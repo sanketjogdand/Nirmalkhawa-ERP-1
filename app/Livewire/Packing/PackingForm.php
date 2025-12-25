@@ -26,7 +26,11 @@ class PackingForm extends Component
     public function mount(InventoryService $inventoryService): void
     {
         $this->authorize('packing.create');
-        $this->products = Product::where('can_stock', true)->where('is_active', true)->orderBy('name')->get();
+        $this->products = Product::where('can_stock', true)
+            ->where('is_packing', false)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
         $this->date = now()->toDateString();
         $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
 
