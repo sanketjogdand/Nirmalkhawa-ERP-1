@@ -44,7 +44,13 @@ class StockSummary extends Component
 
     public function render()
     {
-        $balanceSub = StockLedger::selectRaw('product_id, SUM(CASE WHEN is_increase = 1 THEN qty ELSE -qty END) as balance')
+        $balanceSub = StockLedger::whereNotIn('txn_type', [
+                StockLedger::TYPE_DISPATCH_PACK_OUT,
+                StockLedger::TYPE_DISPATCH_PACK_DELETED,
+                'DISPATCH_PACK', // legacy
+                'DISPATCH_PACK_DELETED', // legacy
+            ])
+            ->selectRaw('product_id, SUM(CASE WHEN is_increase = 1 THEN qty ELSE -qty END) as balance')
             ->groupBy('product_id');
 
         $products = Product::query()

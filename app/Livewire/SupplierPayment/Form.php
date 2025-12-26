@@ -2,7 +2,7 @@
 
 namespace App\Livewire\SupplierPayment;
 
-use App\Models\DispatchDeliveryExpense;
+use App\Models\Purchase;
 use App\Models\Supplier;
 use App\Models\SupplierPayment;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -87,7 +87,7 @@ class Form extends Component
         $supplierStats = null;
 
         if ($this->supplier_id) {
-            $entitled = DispatchDeliveryExpense::where('supplier_id', $this->supplier_id)->sum('amount');
+            $entitled = Purchase::where('supplier_id', $this->supplier_id)->sum('grand_total');
             $paid = SupplierPayment::where('supplier_id', $this->supplier_id)->sum('amount');
             $supplierStats = [
                 'entitled' => $entitled,
