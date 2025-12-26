@@ -74,6 +74,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'production.delete',
             'production.lock',
             'production.unlock',
+            'materialconsumption.view',
+            'materialconsumption.create',
+            'materialconsumption.update',
+            'materialconsumption.delete',
+            'materialconsumption.lock',
+            'materialconsumption.unlock',
             'packsize.view',
             'packsize.create',
             'packsize.update',
@@ -148,6 +154,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'inventory.view',
             'inventory.transfer',
             'dispatch.view',
+            'materialconsumption.view',
         ]);
 
         // Ensure registration can attach the Accountant role without errors
@@ -191,6 +198,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'purchase.update',
             'purchase.delete',
             'purchase.lock',
+            'materialconsumption.view',
+            'materialconsumption.create',
+            'materialconsumption.update',
+            'materialconsumption.delete',
+            'materialconsumption.lock',
             'grn.view',
             'grn.create',
             'grn.update',
@@ -221,6 +233,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'production.create',
             'production.update',
             'production.lock',
+            'materialconsumption.view',
             'dispatch.view',
         ]);
 
@@ -237,6 +250,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'purchase.view',
             'purchase.create',
             'purchase.update',
+            'materialconsumption.view',
+            'materialconsumption.create',
+            'materialconsumption.update',
             'grn.view',
             'grn.create',
             'grn.update',

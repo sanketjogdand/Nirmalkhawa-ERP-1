@@ -42,7 +42,7 @@
                         <h3 style="margin:0; font-size:18px;">Packing Materials BOM</h3>
                         <small style="color:gray;">Materials consumed per pack (packing items only).</small>
                     </div>
-                    <button type="button" class="btn-secondary" wire:click="addBomRow">Add Material</button>
+                    <button type="button" class="btn-primary" wire:click="addBomRow">Add Material</button>
                 </div>
 
                 <div class="table-wrapper" style="margin-top:10px;">

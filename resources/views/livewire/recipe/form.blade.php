@@ -92,7 +92,7 @@
                                     <select wire:model.live="items.{{ $index }}.material_product_id" class="input-field">
                                         <option value="">Select material</option>
                                         @if(!empty($materialOptions['materials']) && $materialOptions['materials']->isNotEmpty())
-                                            <optgroup label="Materials">
+                                            <optgroup label="Materials" class="bg-white dark:bg-zinc-800">
                                                 @foreach($materialOptions['materials'] as $product)
                                                     <option value="{{ $product->id }}">
                                                         {{ $product->name }} @if($product->code) ({{ $product->code }}) @endif
@@ -101,7 +101,7 @@
                                             </optgroup>
                                         @endif
                                         @if(!empty($materialOptions['packingMaterials']) && $materialOptions['packingMaterials']->isNotEmpty())
-                                            <optgroup label="Packing Materials">
+                                            <optgroup label="Packing Materials" class="bg-white dark:bg-zinc-800">
                                                 @foreach($materialOptions['packingMaterials'] as $product)
                                                     <option value="{{ $product->id }}">
                                                         {{ $product->name }} @if($product->code) ({{ $product->code }}) @endif

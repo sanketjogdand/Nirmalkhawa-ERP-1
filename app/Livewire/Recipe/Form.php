@@ -329,23 +329,45 @@ class Form extends Component
             ->values()
             ->all();
 
-        $builder = function () use ($selectedIds) {
-            return Product::query()
-                ->when($this->materialSearch, function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('name', 'like', '%'.$this->materialSearch.'%')
-                            ->orWhere('code', 'like', '%'.$this->materialSearch.'%');
-                    });
-                })
-                ->where('can_consume', true)
-                ->when(! empty($selectedIds), fn ($q) => $q->orWhereIn('id', $selectedIds))
-                ->orderBy('name')
-                ->limit(25);
-        };
+        $selectedProducts = ! empty($selectedIds)
+            ? Product::whereIn('id', $selectedIds)->get(['id', 'is_packing'])
+            : collect();
+
+        $selectedMaterialIds = $selectedProducts->where('is_packing', false)->pluck('id')->values()->all();
+        $selectedPackingIds = $selectedProducts->where('is_packing', true)->pluck('id')->values()->all();
+
+        $baseQuery = Product::query()
+            ->when($this->materialSearch, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%'.$this->materialSearch.'%')
+                        ->orWhere('code', 'like', '%'.$this->materialSearch.'%');
+                });
+            })
+            ->where('can_consume', true);
+
+        $fields = ['id', 'name', 'code', 'uom', 'can_consume', 'is_packing'];
 
         return [
-            'materials' => $builder()->where('is_packing', false)->get(['id', 'name', 'code', 'uom', 'can_consume', 'is_packing']),
-            'packingMaterials' => $builder()->where('is_packing', true)->get(['id', 'name', 'code', 'uom', 'can_consume', 'is_packing']),
+            'materials' => (clone $baseQuery)
+                ->where(function ($q) use ($selectedMaterialIds) {
+                    $q->where('is_packing', false);
+                    if (! empty($selectedMaterialIds)) {
+                        $q->orWhereIn('id', $selectedMaterialIds);
+                    }
+                })
+                ->orderBy('name')
+                ->limit(25)
+                ->get($fields),
+            'packingMaterials' => (clone $baseQuery)
+                ->where(function ($q) use ($selectedPackingIds) {
+                    $q->where('is_packing', true);
+                    if (! empty($selectedPackingIds)) {
+                        $q->orWhereIn('id', $selectedPackingIds);
+                    }
+                })
+                ->orderBy('name')
+                ->limit(25)
+                ->get($fields),
         ];
     }
 

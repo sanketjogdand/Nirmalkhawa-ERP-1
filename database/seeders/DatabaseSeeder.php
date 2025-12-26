@@ -22,10 +22,10 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             RolesAndPermissionsSeeder::class,
-            RegionSeeder::class,
             UomSeeder::class,
             ProductSeeder::class,
             SettlementPeriodTemplateSeeder::class,
+            RegionSeeder::class,
             // add any other seeders here
         ]);
     }

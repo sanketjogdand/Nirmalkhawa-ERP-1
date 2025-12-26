@@ -34,6 +34,9 @@ use App\Livewire\Packing\UnpackingForm;
 use App\Livewire\Production\Form as ProductionForm;
 use App\Livewire\Production\Show as ProductionShow;
 use App\Livewire\Production\View as ProductionView;
+use App\Livewire\MaterialConsumption\Form as MaterialConsumptionForm;
+use App\Livewire\MaterialConsumption\Show as MaterialConsumptionShow;
+use App\Livewire\MaterialConsumption\View as MaterialConsumptionView;
 use App\Livewire\Dispatch\View as DispatchView;
 use App\Livewire\Dispatch\Form as DispatchForm;
 use App\Livewire\Dispatch\Show as DispatchShow;
@@ -380,6 +383,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:production.update')
         ->whereNumber('production')
         ->name('productions.edit');
+
+    Route::middleware('permission:materialconsumption.view')->group(function () {
+        Route::get('material-consumptions', MaterialConsumptionView::class)->name('material-consumptions.view');
+        Route::get('material-consumptions/{materialConsumption}', MaterialConsumptionShow::class)
+            ->whereNumber('materialConsumption')
+            ->name('material-consumptions.show');
+    });
+
+    Route::get('material-consumptions/create', MaterialConsumptionForm::class)
+        ->middleware('permission:materialconsumption.create')
+        ->name('material-consumptions.create');
+
+    Route::get('material-consumptions/{materialConsumption}/edit', MaterialConsumptionForm::class)
+        ->middleware('permission:materialconsumption.update')
+        ->whereNumber('materialConsumption')
+        ->name('material-consumptions.edit');
 
     Route::get('/setup', Setup::class)->name('setup');
     Route::get('settings/profile', Profile::class)->name('settings.profile');

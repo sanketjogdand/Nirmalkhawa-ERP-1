@@ -12,6 +12,8 @@ class UomSeeder extends Seeder
      */
     public function run(): void
     {
-        Uom::updateOrCreate(['name' => 'asd']);
+        Uom::updateOrCreate(['name' => 'LTR']);
+        Uom::updateOrCreate(['name' => 'KG']);
+        Uom::updateOrCreate(['name' => 'NOS']);
     }
 }

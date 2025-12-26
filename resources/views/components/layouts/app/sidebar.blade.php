@@ -438,8 +438,8 @@
                     @endcan
                 </flux:navlist.group>
             @endcanany
-            @canany(['product.view', 'recipe.view', 'production.view'])
-                <flux:navlist.group expandable :heading="__('Production')" class="lg:grid" :expanded="request()->routeIs(['products.*', 'recipes.*', 'productions.*'])">
+            @canany(['product.view', 'recipe.view', 'production.view', 'materialconsumption.view'])
+                <flux:navlist.group expandable :heading="__('Production')" class="lg:grid" :expanded="request()->routeIs(['products.*', 'recipes.*', 'productions.*', 'material-consumptions.*'])">
                     @can('product.view')
                         <flux:navlist.item :href="route('products.view')" :current="request()->routeIs('products.*')" wire:navigate>{{ __('Products') }}</flux:navlist.item>
                     @endcan
@@ -448,6 +448,9 @@
                     @endcan
                     @can('production.view')
                         <flux:navlist.item :href="route('productions.view')" :current="request()->routeIs('productions.*')" wire:navigate>{{ __('Production') }}</flux:navlist.item>
+                    @endcan
+                    @can('materialconsumption.view')
+                        <flux:navlist.item :href="route('material-consumptions.view')" :current="request()->routeIs('material-consumptions.*')" wire:navigate>{{ __('Material Consumption') }}</flux:navlist.item>
                     @endcan
                 </flux:navlist.group>
             @endcanany

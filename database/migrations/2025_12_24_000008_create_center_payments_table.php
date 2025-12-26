@@ -27,9 +27,9 @@ return new class extends Migration
             $table->index('center_id');
             $table->index('payment_date');
 
-            $table->boolean('is_locked')->default(false)->after('created_by');
-            $table->foreignId('locked_by')->nullable()->after('is_locked')->constrained('users')->nullOnDelete();
-            $table->timestamp('locked_at')->nullable()->after('locked_by');
+            $table->boolean('is_locked')->default(false);
+            $table->foreignId('locked_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('locked_at')->nullable();
         });
     }
 
