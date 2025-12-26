@@ -25,6 +25,8 @@ class StockLedger extends Model
     public const TYPE_DISPATCH_PACK_OUT = 'DISPATCH_PACK_OUT';
     public const TYPE_DISPATCH_BULK_DELETED = 'DISPATCH_BULK_DELETED';
     public const TYPE_DISPATCH_PACK_DELETED = 'DISPATCH_PACK_DELETED';
+    public const TYPE_GRN_IN = 'GRN_IN';
+    public const TYPE_GRN_REVERSAL = 'GRN_REVERSAL';
 
     protected $fillable = [
         'product_id',

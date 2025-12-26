@@ -31,6 +31,8 @@
                 <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_PACK_OUT }}">Dispatch Pack Out</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_BULK_DELETED }}">Dispatch Bulk Deleted</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_PACK_DELETED }}">Dispatch Pack Deleted</option>
+                <option value="{{ \App\Models\StockLedger::TYPE_GRN_IN }}">GRN In</option>
+                <option value="{{ \App\Models\StockLedger::TYPE_GRN_REVERSAL }}">GRN Reversal</option>
             </select>
         </div>
         <div class="form-group">

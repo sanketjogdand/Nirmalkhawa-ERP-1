@@ -45,6 +45,9 @@ use App\Livewire\SupplierPayment\View as SupplierPaymentView;
 use App\Livewire\Purchase\Form as PurchaseForm;
 use App\Livewire\Purchase\Show as PurchaseShow;
 use App\Livewire\Purchase\View as PurchaseView;
+use App\Livewire\Grn\Form as GrnForm;
+use App\Livewire\Grn\Show as GrnShow;
+use App\Livewire\Grn\View as GrnView;
 use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
@@ -306,6 +309,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:purchase.update')
         ->whereNumber('purchase')
         ->name('purchases.edit');
+
+    Route::middleware('permission:grn.view')->group(function () {
+        Route::get('grns', GrnView::class)->name('grns.view');
+        Route::get('grns/{grn}', GrnShow::class)
+            ->whereNumber('grn')
+            ->name('grns.show');
+    });
+    Route::get('grns/create', GrnForm::class)
+        ->middleware('permission:grn.create')
+        ->name('grns.create');
+    Route::get('grns/{grn}/edit', GrnForm::class)
+        ->middleware('permission:grn.update')
+        ->whereNumber('grn')
+        ->name('grns.edit');
 
     Route::middleware('permission:dispatch.view')->group(function () {
         Route::get('dispatches', DispatchView::class)->name('dispatches.view');
