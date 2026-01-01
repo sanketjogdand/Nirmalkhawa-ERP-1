@@ -41,8 +41,13 @@
                     <div>
                         <h3 style="margin:0; font-size:18px;">Packing Materials BOM</h3>
                         <small style="color:gray;">Materials consumed per pack (packing items only).</small>
+                        @unless($canEditBom)
+                            <div style="color:#dc2626; font-size:12px; margin-top:4px;">Only admins can edit the BOM. Existing rows are read-only.</div>
+                        @endunless
                     </div>
-                    <button type="button" class="btn-primary" wire:click="addBomRow">Add Material</button>
+                    @if($canEditBom)
+                        <button type="button" class="btn-primary" wire:click="addBomRow">Add Material</button>
+                    @endif
                 </div>
 
                 <div class="table-wrapper" style="margin-top:10px;">
@@ -60,7 +65,7 @@
                                 @php $material = $packingMaterialsList->firstWhere('id', (int) ($row['material_product_id'] ?? 0)); @endphp
                                 <tr>
                                     <td class="px-4 py-2 border dark:border-zinc-700">
-                                        <select wire:model.live="bom.{{ $index }}.material_product_id" class="input-field">
+                                        <select wire:model.live="bom.{{ $index }}.material_product_id" class="input-field" @if(!$canEditBom) disabled @endif>
                                             <option value="">Select packing material</option>
                                             @foreach($packingMaterialsList as $product)
                                                 <option value="{{ $product->id }}">{{ $product->name }} @if($product->code) ({{ $product->code }}) @endif</option>
@@ -69,19 +74,29 @@
                                         @error('bom.'.$index.'.material_product_id') <span style="color:red;">{{ $message }}</span> @enderror
                                     </td>
                                     <td class="px-4 py-2 border dark:border-zinc-700">
-                                        <input type="number" step="0.001" wire:model.live="bom.{{ $index }}.qty_per_pack" class="input-field" placeholder="Qty">
+                                        <input type="number" step="0.001" wire:model.live="bom.{{ $index }}.qty_per_pack" class="input-field" placeholder="Qty" @if(!$canEditBom) disabled @endif>
                                         @error('bom.'.$index.'.qty_per_pack') <span style="color:red;">{{ $message }}</span> @enderror
                                     </td>
                                     <td class="px-4 py-2 border dark:border-zinc-700" style="min-width:80px;">
                                         {{ $row['uom'] ?? ($material->uom ?? '') }}
                                     </td>
                                     <td class="px-4 py-2 border dark:border-zinc-700">
-                                        <button type="button" class="btn-danger" wire:click="removeBomRow({{ $index }})">Remove</button>
+                                        @if($canEditBom)
+                                            <button type="button" class="btn-danger" wire:click="removeBomRow({{ $index }})">Remove</button>
+                                        @else
+                                            <span style="color:gray;">View only</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">Add at least one material if required.</td>
+                                    <td colspan="4" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">
+                                        @if($canEditBom)
+                                            Add at least one material if required.
+                                        @else
+                                            No BOM rows to display. Admins can add packing materials here.
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>

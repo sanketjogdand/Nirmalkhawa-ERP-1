@@ -2,27 +2,28 @@
 
 namespace App\Models;
 
-use App\Models\PackingMaterialUsage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-class PackingItem extends Model
+class PackingMaterialUsage extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
         'packing_id',
+        'packing_item_id',
         'pack_size_id',
-        'pack_count',
-        'pack_qty_snapshot',
-        'pack_uom',
+        'material_product_id',
+        'qty_used',
+        'uom',
+        'remarks',
     ];
 
     protected $casts = [
-        'pack_count' => 'integer',
-        'pack_qty_snapshot' => 'decimal:3',
+        'qty_used' => 'decimal:3',
     ];
 
     public function packing(): BelongsTo
@@ -30,13 +31,18 @@ class PackingItem extends Model
         return $this->belongsTo(Packing::class);
     }
 
+    public function packingItem(): BelongsTo
+    {
+        return $this->belongsTo(PackingItem::class);
+    }
+
     public function packSize(): BelongsTo
     {
         return $this->belongsTo(PackSize::class);
     }
 
-    public function materialUsages(): HasMany
+    public function materialProduct(): BelongsTo
     {
-        return $this->hasMany(PackingMaterialUsage::class);
+        return $this->belongsTo(Product::class, 'material_product_id');
     }
 }

@@ -13,6 +13,7 @@ class PackSizes extends Component
     use AuthorizesRequests;
 
     public $title = 'Pack Sizes';
+    public bool $canEditBom = false;
     public $products;
     public $packingMaterials;
     public $selectedProductId = '';
@@ -28,6 +29,7 @@ class PackSizes extends Component
     public function mount(): void
     {
         $this->authorize('packsize.view');
+        $this->canEditBom = auth()->user()?->can('packsize.update_bom') ?? false;
         $this->products = Product::where('can_stock', true)
             ->where('is_packing', false)
             ->where('is_active', true)
@@ -58,9 +60,11 @@ class PackSizes extends Component
             'pack_uom' => $this->getProductUom(),
             'is_active' => true,
         ];
-        $this->bom = [
-            ['material_product_id' => '', 'qty_per_pack' => null],
-        ];
+        $this->bom = $this->canEditBom
+            ? [
+                ['material_product_id' => '', 'qty_per_pack' => null],
+            ]
+            : [];
     }
 
     public function edit(int $packSizeId): void
@@ -89,51 +93,66 @@ class PackSizes extends Component
     {
         $this->authorize($this->form['id'] ? 'packsize.update' : 'packsize.create');
 
-        $data = $this->validate([
+        $rules = [
             'selectedProductId' => ['required', 'exists:products,id'],
             'form.pack_qty' => ['required', 'numeric', 'gt:0'],
             'form.pack_uom' => ['required', 'string', 'max:20'],
             'form.is_active' => ['boolean'],
-            'bom' => ['array'],
-            'bom.*.material_product_id' => ['nullable', 'exists:products,id'],
-            'bom.*.qty_per_pack' => ['nullable', 'numeric', 'gt:0'],
-        ], [], [
+        ];
+
+        if ($this->canEditBom) {
+            $rules['bom'] = ['array'];
+            $rules['bom.*.material_product_id'] = ['nullable', 'exists:products,id'];
+            $rules['bom.*.qty_per_pack'] = ['nullable', 'numeric', 'gt:0'];
+        }
+
+        $labels = [
             'selectedProductId' => 'product',
             'form.pack_qty' => 'pack quantity',
             'form.pack_uom' => 'pack unit',
-            'bom.*.material_product_id' => 'packing material',
-            'bom.*.qty_per_pack' => 'material quantity per pack',
-        ]);
+        ];
 
-        $cleanBom = collect($data['bom'])
-            ->filter(fn ($row) => ! empty($row['material_product_id']) && isset($row['qty_per_pack']))
-            ->values();
+        if ($this->canEditBom) {
+            $labels['bom.*.material_product_id'] = 'packing material';
+            $labels['bom.*.qty_per_pack'] = 'material quantity per pack';
+        }
 
-        $materialIds = $cleanBom->pluck('material_product_id')->unique()->filter();
-        $materialsLookup = $materialIds->isNotEmpty()
-            ? Product::whereIn('id', $materialIds)->get(['id', 'name', 'is_packing', 'can_purchase', 'can_consume', 'can_stock', 'uom'])->keyBy('id')
-            : collect();
+        $data = $this->validate($rules, [], $labels);
 
-        foreach ($cleanBom as $index => $row) {
-            $product = $materialsLookup->get((int) $row['material_product_id']);
-            if (! $product || ! $product->is_packing || ! $product->can_purchase || ! $product->can_consume || ! $product->can_stock) {
-                $this->addError('bom.'.$index.'.material_product_id', 'Select a packing material that can be purchased, consumed, and stocked.');
+        $cleanBom = collect();
+        $materialsLookup = collect();
+
+        if ($this->canEditBom) {
+            $cleanBom = collect($data['bom'])
+                ->filter(fn ($row) => ! empty($row['material_product_id']) && isset($row['qty_per_pack']))
+                ->values();
+
+            $materialIds = $cleanBom->pluck('material_product_id')->unique()->filter();
+            $materialsLookup = $materialIds->isNotEmpty()
+                ? Product::whereIn('id', $materialIds)->get(['id', 'name', 'is_packing', 'can_purchase', 'can_consume', 'can_stock', 'uom'])->keyBy('id')
+                : collect();
+
+            foreach ($cleanBom as $index => $row) {
+                $product = $materialsLookup->get((int) $row['material_product_id']);
+                if (! $product || ! $product->is_packing || ! $product->can_purchase || ! $product->can_consume || ! $product->can_stock) {
+                    $this->addError('bom.'.$index.'.material_product_id', 'Select a packing material that can be purchased, consumed, and stocked.');
+                    return;
+                }
+            }
+
+            if ($materialIds->count() !== $cleanBom->count()) {
+                $this->addError('bom', 'Duplicate packing materials are not allowed.');
                 return;
             }
-        }
 
-        if ($materialIds->count() !== $cleanBom->count()) {
-            $this->addError('bom', 'Duplicate packing materials are not allowed.');
-            return;
-        }
-
-        // Ensure options include existing (possibly inactive) materials to keep references available
-        if ($materialIds->isNotEmpty()) {
-            $missing = $materialIds->diff($this->packingMaterials->pluck('id'));
-            if ($missing->isNotEmpty()) {
-                $this->packingMaterials = $this->packingMaterials->concat(
-                    Product::whereIn('id', $missing)->get()
-                );
+            // Ensure options include existing (possibly inactive) materials to keep references available
+            if (! $materialsLookup->isEmpty()) {
+                $missing = $materialsLookup->keys()->diff($this->packingMaterials->pluck('id'));
+                if ($missing->isNotEmpty()) {
+                    $this->packingMaterials = $this->packingMaterials->concat(
+                        Product::whereIn('id', $missing)->get()
+                    );
+                }
             }
         }
 
@@ -150,20 +169,22 @@ class PackSizes extends Component
         $packSize->product_id = (int) $data['selectedProductId'];
         $packSize->save();
 
-        $packSize->packMaterials()->delete();
-        if ($cleanBom->isNotEmpty()) {
-            $packSize->packMaterials()->createMany(
-                $cleanBom->values()->map(function ($row, $idx) use ($materialsLookup) {
-                    $product = $materialsLookup->get((int) $row['material_product_id']);
+        if ($this->canEditBom) {
+            $packSize->packMaterials()->delete();
+            if ($cleanBom->isNotEmpty()) {
+                $packSize->packMaterials()->createMany(
+                    $cleanBom->values()->map(function ($row, $idx) use ($materialsLookup) {
+                        $product = $materialsLookup->get((int) $row['material_product_id']);
 
-                    return [
-                        'material_product_id' => (int) $row['material_product_id'],
-                        'qty_per_pack' => (float) $row['qty_per_pack'],
-                        'uom' => $row['uom'] ?? ($product->uom ?? null),
-                        'sort_order' => $idx,
-                    ];
-                })->all()
-            );
+                        return [
+                            'material_product_id' => (int) $row['material_product_id'],
+                            'qty_per_pack' => (float) $row['qty_per_pack'],
+                            'uom' => $row['uom'] ?? ($product->uom ?? null),
+                            'sort_order' => $idx,
+                        ];
+                    })->all()
+                );
+            }
         }
 
         $this->resetForm();
@@ -188,11 +209,19 @@ class PackSizes extends Component
 
     public function addBomRow(): void
     {
+        if (! $this->canEditBom) {
+            return;
+        }
+
         $this->bom[] = ['material_product_id' => '', 'qty_per_pack' => null];
     }
 
     public function removeBomRow(int $index): void
     {
+        if (! $this->canEditBom) {
+            return;
+        }
+
         unset($this->bom[$index]);
         $this->bom = array_values($this->bom);
     }
@@ -216,6 +245,7 @@ class PackSizes extends Component
         return view('livewire.packing.pack-sizes', [
             'packSizesList' => $this->packSizes,
             'packingMaterialsList' => $this->packingMaterials,
+            'canEditBom' => $this->canEditBom,
         ])->with(['title_name' => $this->title ?? 'Pack Sizes']);
     }
 }

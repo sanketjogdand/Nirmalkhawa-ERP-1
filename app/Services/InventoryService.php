@@ -21,6 +21,14 @@ class InventoryService
             ->value('balance');
     }
 
+    /**
+     * Computes on-hand quantity; kept separate so future movement-based logic can replace ledger sums.
+     */
+    public function getOnHandStock(int $productId): float
+    {
+        return $this->getCurrentStock($productId);
+    }
+
     public function getStockAsOf(int $productId, $asOf): float
     {
         $asOfTimestamp = $asOf ? Carbon::parse($asOf)->endOfDay() : now();

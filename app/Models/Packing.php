@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\PackingMaterialUsage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,11 +18,16 @@ class Packing extends Model
         'total_bulk_qty',
         'remarks',
         'created_by',
+        'is_locked',
+        'locked_by',
+        'locked_at',
     ];
 
     protected $casts = [
         'date' => 'date',
         'total_bulk_qty' => 'decimal:3',
+        'is_locked' => 'boolean',
+        'locked_at' => 'datetime',
     ];
 
     public function product(): BelongsTo
@@ -37,5 +43,15 @@ class Packing extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function lockedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'locked_by');
+    }
+
+    public function materialUsages(): HasMany
+    {
+        return $this->hasMany(PackingMaterialUsage::class);
     }
 }
