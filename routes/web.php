@@ -22,7 +22,9 @@ use App\Livewire\MilkIntake\Form as MilkIntakeForm;
 use App\Livewire\MilkIntake\View as MilkIntakeView;
 use App\Livewire\Product\Form as ProductForm;
 use App\Livewire\Product\View as ProductView;
-use App\Livewire\Inventory\StockAdjustment as InventoryStockAdjustment;
+use App\Livewire\Inventory\StockAdjustment\Form as StockAdjustmentForm;
+use App\Livewire\Inventory\StockAdjustment\Show as StockAdjustmentShow;
+use App\Livewire\Inventory\StockAdjustment\View as StockAdjustmentView;
 use App\Livewire\Inventory\StockLedger as InventoryStockLedger;
 use App\Livewire\Inventory\StockSummary as InventoryStockSummary;
 use App\Livewire\Inventory\TransferToMix as InventoryTransferToMix;
@@ -237,9 +239,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/stock-ledger', InventoryStockLedger::class)->name('inventory.stock-ledger');
     });
 
-    Route::get('inventory/stock-adjustments', InventoryStockAdjustment::class)
-        ->middleware('permission:inventory.adjust')
-        ->name('inventory.stock-adjustments');
+    Route::middleware('permission:stockadjustment.view')->group(function () {
+        Route::get('inventory/stock-adjustments', StockAdjustmentView::class)
+            ->name('inventory.stock-adjustments');
+        Route::get('inventory/stock-adjustments/{stockAdjustment}', StockAdjustmentShow::class)
+            ->whereNumber('stockAdjustment')
+            ->name('inventory.stock-adjustments.show');
+    });
+
+    Route::get('inventory/stock-adjustments/create', StockAdjustmentForm::class)
+        ->middleware('permission:stockadjustment.create')
+        ->name('inventory.stock-adjustments.create');
+
+    Route::get('inventory/stock-adjustments/{stockAdjustment}/edit', StockAdjustmentForm::class)
+        ->middleware('permission:stockadjustment.update')
+        ->whereNumber('stockAdjustment')
+        ->name('inventory.stock-adjustments.edit');
 
     Route::get('inventory/transfer-to-mix', InventoryTransferToMix::class)
         ->middleware('permission:inventory.transfer')

@@ -22,6 +22,8 @@
                 <option value="{{ \App\Models\StockLedger::TYPE_IN }}">In</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_OUT }}">Out</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_ADJ }}">Adjustment</option>
+                <option value="ADJUSTMENT_IN">Adjustment In</option>
+                <option value="ADJUSTMENT_OUT">Adjustment Out</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_PRODUCTION_IN }}">Production In</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_PRODUCTION_OUT }}">Production Out</option>
                 <option value="{{ \App\Models\StockLedger::TYPE_TRANSFER }}">Transfer</option>
@@ -70,10 +72,10 @@
             <tbody>
                 @forelse ($ledgers as $entry)
                     <tr>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->txn_datetime?->format('d M Y H:i') }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ \Illuminate\Support\Carbon::parse($entry->txn_datetime)->format('d M Y H:i') }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">
-                            {{ $entry->product?->name }}
-                            <div style="font-size:12px; color:gray;">{{ $entry->product?->code }}</div>
+                            {{ $entry->product_name }}
+                            <div style="font-size:12px; color:gray;">{{ $entry->product_code }}</div>
                         </td>
                         @php
                             $typeLabel = $entry->txn_type;
@@ -82,16 +84,18 @@
                             } elseif ($entry->txn_type === 'DISPATCH_PACK') {
                                 $typeLabel = 'DISPATCH_PACK_OUT';
                             }
+
+                            $signedQty = (float) $entry->qty_in - (float) $entry->qty_out;
                         @endphp
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $typeLabel }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700" style="font-weight:600; color: {{ $entry->is_increase ? '#16a34a' : '#dc2626' }};">
-                            {{ $entry->is_increase ? '+' : '-' }}{{ number_format($entry->qty, 3) }}
+                        <td class="px-4 py-2 border dark:border-zinc-700" style="font-weight:600; color: {{ $signedQty >= 0 ? '#16a34a' : '#dc2626' }};">
+                            {{ $signedQty >= 0 ? '+' : '' }}{{ number_format($signedQty, 3) }}
                         </td>
                         <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->uom }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">
                             {{ $entry->remarks }}
-                            @if($entry->reference_type && $entry->reference_id)
-                                <div style="font-size:12px; color:gray;">Ref: {{ class_basename($entry->reference_type) }} #{{ $entry->reference_id }}</div>
+                            @if($entry->ref_table && $entry->ref_id)
+                                <div style="font-size:12px; color:gray;">Ref: {{ $entry->ref_table }} #{{ $entry->ref_id }}</div>
                             @endif
                         </td>
                     </tr>

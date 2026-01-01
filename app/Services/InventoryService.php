@@ -10,14 +10,18 @@ use Carbon\Carbon;
 
 class InventoryService
 {
+    private array $excludedTxnTypes = [
+        StockLedger::TYPE_DISPATCH_PACK_OUT,
+        StockLedger::TYPE_DISPATCH_PACK_DELETED,
+        'DISPATCH_PACK', // legacy
+        'DISPATCH_PACK_DELETED', // legacy
+    ];
+
     public function getCurrentStock(int $productId): float
     {
-        return (float) StockLedger::where('product_id', $productId)
-            ->whereNotIn('txn_type', [
-                StockLedger::TYPE_DISPATCH_PACK_OUT,
-                'DISPATCH_PACK', // legacy
-            ])
-            ->selectRaw('COALESCE(SUM(CASE WHEN is_increase = 1 THEN qty ELSE -qty END), 0) as balance')
+        return (float) $this->ledgerView()
+            ->where('product_id', $productId)
+            ->selectRaw('COALESCE(SUM(qty_in - qty_out), 0) as balance')
             ->value('balance');
     }
 
@@ -33,13 +37,10 @@ class InventoryService
     {
         $asOfTimestamp = $asOf ? Carbon::parse($asOf)->endOfDay() : now();
 
-        return (float) StockLedger::where('product_id', $productId)
+        return (float) $this->ledgerView()
+            ->where('product_id', $productId)
             ->where('txn_datetime', '<=', $asOfTimestamp)
-            ->whereNotIn('txn_type', [
-                StockLedger::TYPE_DISPATCH_PACK_OUT,
-                'DISPATCH_PACK', // legacy
-            ])
-            ->selectRaw('COALESCE(SUM(CASE WHEN is_increase = 1 THEN qty ELSE -qty END), 0) as balance')
+            ->selectRaw('COALESCE(SUM(qty_in - qty_out), 0) as balance')
             ->value('balance');
     }
 
@@ -161,5 +162,10 @@ class InventoryService
             'remarks' => $options['remarks'] ?? null,
             'created_by' => $options['created_by'] ?? auth()->id(),
         ]);
+    }
+
+    private function ledgerView()
+    {
+        return DB::table('inventory_ledger_view')->whereNotIn('txn_type', $this->excludedTxnTypes);
     }
 }

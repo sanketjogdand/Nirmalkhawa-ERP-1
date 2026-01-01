@@ -455,19 +455,20 @@
                 </flux:navlist.group>
             @endcanany
 
-            @canany(['inventory.view', 'inventory.adjust', 'inventory.transfer'])
+            @canany(['inventory.view', 'stockadjustment.view', 'inventory.transfer'])
                 <flux:navlist.group expandable :heading="__('Inventory')" class="lg:grid" :expanded="request()->routeIs([
                     'inventory.stock-summary',
                     'inventory.stock-ledger',
                     'inventory.stock-adjustments',
+                    'inventory.stock-adjustments.*',
                     'inventory.transfer-to-mix',
                 ])">
                     @can('inventory.view')
                         <flux:navlist.item :href="route('inventory.stock-summary')" :current="request()->routeIs('inventory.stock-summary')" wire:navigate>{{ __('Stock Summary') }}</flux:navlist.item>
                         <flux:navlist.item :href="route('inventory.stock-ledger')" :current="request()->routeIs('inventory.stock-ledger')" wire:navigate>{{ __('Stock Ledger') }}</flux:navlist.item>
                     @endcan
-                    @can('inventory.adjust')
-                        <flux:navlist.item :href="route('inventory.stock-adjustments')" :current="request()->routeIs('inventory.stock-adjustments')" wire:navigate>{{ __('Stock Adjustments') }}</flux:navlist.item>
+                    @can('stockadjustment.view')
+                        <flux:navlist.item :href="route('inventory.stock-adjustments')" :current="request()->routeIs(['inventory.stock-adjustments', 'inventory.stock-adjustments.*'])" wire:navigate>{{ __('Stock Adjustments') }}</flux:navlist.item>
                     @endcan
                     @can('inventory.transfer')
                         <flux:navlist.item :href="route('inventory.transfer-to-mix')" :current="request()->routeIs('inventory.transfer-to-mix')" wire:navigate>{{ __('Transfer to Mix') }}</flux:navlist.item>

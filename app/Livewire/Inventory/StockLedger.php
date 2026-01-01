@@ -3,8 +3,8 @@
 namespace App\Livewire\Inventory;
 
 use App\Models\Product;
-use App\Models\StockLedger as StockLedgerModel;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -43,13 +43,15 @@ class StockLedger extends Component
 
     public function render()
     {
-        $ledgers = StockLedgerModel::with(['product'])
-            ->when($this->productId, fn ($q) => $q->where('product_id', $this->productId))
-            ->when($this->txnType, fn ($q) => $q->where('txn_type', $this->txnType))
-            ->when($this->fromDate, fn ($q) => $q->whereDate('txn_datetime', '>=', $this->fromDate))
-            ->when($this->toDate, fn ($q) => $q->whereDate('txn_datetime', '<=', $this->toDate))
-            ->orderByDesc('txn_datetime')
-            ->orderByDesc('id')
+        $ledgers = DB::table('inventory_ledger_view as il')
+            ->leftJoin('products', 'products.id', '=', 'il.product_id')
+            ->select('il.*', 'products.name as product_name', 'products.code as product_code')
+            ->when($this->productId, fn ($q) => $q->where('il.product_id', $this->productId))
+            ->when($this->txnType, fn ($q) => $q->where('il.txn_type', $this->txnType))
+            ->when($this->fromDate, fn ($q) => $q->whereDate('il.txn_datetime', '>=', $this->fromDate))
+            ->when($this->toDate, fn ($q) => $q->whereDate('il.txn_datetime', '<=', $this->toDate))
+            ->orderByDesc('il.txn_datetime')
+            ->orderByDesc('il.id')
             ->paginate($this->perPage);
 
         return view('livewire.inventory.stock-ledger', [

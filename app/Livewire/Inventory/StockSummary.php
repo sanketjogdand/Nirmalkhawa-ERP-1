@@ -5,7 +5,6 @@ namespace App\Livewire\Inventory;
 use App\Models\PackInventory;
 use App\Models\PackSize;
 use App\Models\Product;
-use App\Models\StockLedger;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -24,6 +23,12 @@ class StockSummary extends Component
     public $filter_can_stock = '1';
     public $filter_can_sell = '';
     public $filter_can_consume = '';
+    protected array $excludedTxnTypes = [
+        'DISPATCH_PACK_OUT',
+        'DISPATCH_PACK_DELETED',
+        'DISPATCH_PACK',
+        'DISPATCH_PACK_DELETED',
+    ];
 
     public function mount(): void
     {
@@ -44,13 +49,9 @@ class StockSummary extends Component
 
     public function render()
     {
-        $balanceSub = StockLedger::whereNotIn('txn_type', [
-                StockLedger::TYPE_DISPATCH_PACK_OUT,
-                StockLedger::TYPE_DISPATCH_PACK_DELETED,
-                'DISPATCH_PACK', // legacy
-                'DISPATCH_PACK_DELETED', // legacy
-            ])
-            ->selectRaw('product_id, SUM(CASE WHEN is_increase = 1 THEN qty ELSE -qty END) as balance')
+        $balanceSub = DB::table('inventory_ledger_view')
+            ->whereNotIn('txn_type', $this->excludedTxnTypes)
+            ->selectRaw('product_id, SUM(qty_in - qty_out) as balance')
             ->groupBy('product_id');
 
         $products = Product::query()
