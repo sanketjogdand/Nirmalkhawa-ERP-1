@@ -19,7 +19,6 @@
                     <th class="px-4 py-2 border dark:border-zinc-700">Base Rate</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Base FAT / SNF</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Effective</th>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -32,7 +31,6 @@
                         {{ $rateChart->effective_from?->format('d M Y') ?? 'N/A' }} -
                         {{ $rateChart->effective_to?->format('d M Y') ?? 'Ongoing' }}
                     </td>
-                    <td class="px-4 py-2 border dark:border-zinc-700">{{ $rateChart->is_active ? 'Active' : 'Inactive' }}</td>
                 </tr>
             </tbody>
         </table>
@@ -122,13 +120,6 @@
                         <input id="assignment_effective_to" type="date" wire:model="assignment_effective_to" class="input-field">
                         @error('assignment_effective_to')<span style="color:red; font-size:12px;">{{ $message }}</span>@enderror
                     </div>
-                    {{-- <div class="form-group">
-                        <label for="assignment_is_active">Status</label>
-                        <select id="assignment_is_active" wire:model="assignment_is_active" class="input-field">
-                            <option value="1">Active</option>
-                            <option value="0">Inactive</option>
-                        </select>
-                    </div>--}}
                 </div>
                 <div style="margin-top:12px; text-align:right; display:flex; gap:10px; justify-content:flex-end;">
                     <button type="button" class="btn-danger" wire:click="resetAssignmentForm">Reset</button>
@@ -213,7 +204,6 @@
                         <th class="px-4 py-2 border dark:border-zinc-700">Center</th>
                         <th class="px-4 py-2 border dark:border-zinc-700">Effective From</th>
                         <th class="px-4 py-2 border dark:border-zinc-700">Effective To</th>
-                        <th class="px-4 py-2 border dark:border-zinc-700">Status</th>
                         <th class="px-4 py-2 border dark:border-zinc-700">Actions</th>
                     </tr>
                 </thead>
@@ -223,23 +213,17 @@
                             <td class="px-4 py-2 border dark:border-zinc-700">{{ $assignment->center?->name }} ({{ $assignment->center?->code }})</td>
                             <td class="px-4 py-2 border dark:border-zinc-700">{{ $assignment->effective_from?->format('d M Y') }}</td>
                             <td class="px-4 py-2 border dark:border-zinc-700">{{ $assignment->effective_to?->format('d M Y') ?? 'Ongoing' }}</td>
-                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $assignment->is_active ? 'Active' : 'Inactive' }}</td>
                             <td class="px-4 py-2 border dark:border-zinc-700" style="display:flex; gap:8px;">
                                 @can('ratechart.assign')
                                     <button class="action-link" type="button" wire:click="editAssignment({{ $assignment->id }})" style="border:none; background:transparent; padding:0;">Edit</button>
                                 @endcan
-                                {{-- @can('ratechart.assign')
-                                    <button class="action-link" type="button" wire:click="toggleAssignment({{ $assignment->id }})" style="border:none; background:transparent; padding:0;">
-                                        {{ $assignment->is_active ? 'Deactivate' : 'Activate' }}
-                                    </button>
-                                @endcan --}}
                                 @can('ratechart.assign')
                                     <button class="action-link" type="button" wire:click="deleteAssignment({{ $assignment->id }})" style="border:none; background:transparent; padding:0;">Delete</button>
                                 @endcan
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No assignments found.</td></tr>
+                        <tr><td colspan="4" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No assignments found.</td></tr>
                     @endforelse
                 </tbody>
             </table>

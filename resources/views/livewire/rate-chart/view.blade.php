@@ -26,14 +26,6 @@
             </select>
         </div>
         <div class="form-group">
-            <label for="status">Status</label>
-            <select id="status" wire:model.live="status" class="input-field">
-                <option value="">All</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-            </select>
-        </div>
-        <div class="form-group">
             <label for="effectiveOn">Effective On</label>
             <input id="effectiveOn" type="date" wire:model.live="effectiveOn" class="input-field">
         </div>
@@ -60,7 +52,6 @@
                     <th class="px-4 py-2 border dark:border-zinc-700">Milk Type</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Base (FAT/SNF)</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Effective</th>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Active</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Assignments</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Actions</th>
                 </tr>
@@ -85,16 +76,15 @@
                                 Ongoing
                             @endif
                         </td>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $chart->is_active ? 'Active' : 'Inactive' }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $chart->active_assignments_count }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $chart->assignments_count }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700" style="white-space:nowrap;">
                             @php $actions = []; @endphp
                             @php $actions[] = '<a href="'.route('rate-charts.show', $chart->id).'" class="action-link" wire:navigate>View / Manage</a>'; @endphp
                             @can('ratechart.update')
                                 @php $actions[] = '<a href="'.route('rate-charts.edit', $chart->id).'" class="action-link" wire:navigate>Edit</a>'; @endphp
                             @endcan
-                            @can('ratechart.update')
-                                @php $actions[] = '<button type="button" class="action-link" wire:click="toggleStatus('.$chart->id.')" style="border:none; background:transparent; padding:0;">'.($chart->is_active ? 'Deactivate' : 'Activate').'</button>'; @endphp
+                            @can('ratechart.delete')
+                                @php $actions[] = '<button type="button" class="action-link" wire:click="deleteChart('.$chart->id.')" style="border:none; background:transparent; padding:0;">Delete</button>'; @endphp
                             @endcan
 
                             <span style="display:inline-flex; align-items:center; gap:8px; white-space:nowrap;">
@@ -109,7 +99,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No rate charts found.</td>
+                        <td colspan="6" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No rate charts found.</td>
                     </tr>
                 @endforelse
             </tbody>

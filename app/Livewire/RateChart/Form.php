@@ -22,7 +22,6 @@ class Form extends Component
     public $base_snf = 8.5;
     public $effective_from;
     public $effective_to;
-    public $is_active = true;
 
     public function mount($rateChart = null): void
     {
@@ -38,7 +37,6 @@ class Form extends Component
                 'base_snf',
                 'effective_from',
                 'effective_to',
-                'is_active',
             ]));
         } else {
             $this->authorize('ratechart.create');
@@ -74,7 +72,6 @@ class Form extends Component
             'base_snf' => ['required', 'numeric', 'gt:0'],
             'effective_from' => ['nullable', 'date'],
             'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
-            'is_active' => ['boolean'],
         ];
     }
 
@@ -82,7 +79,6 @@ class Form extends Component
     {
         $data = $this->validate();
         $data['code'] = strtoupper(trim($data['code']));
-        $data['is_active'] = (bool) $data['is_active'];
 
         if ($this->rateChartId) {
             RateChart::where('id', $this->rateChartId)->update($data);

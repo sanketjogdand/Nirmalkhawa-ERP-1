@@ -21,20 +21,16 @@ class MilkRateCalculator
         $targetDate = Carbon::parse($date)->toDateString();
 
         $assignment = CenterRateChart::query()
-            ->active()
             ->where('center_id', $centerModel->id)
             ->forDate($targetDate)
-            ->whereHas('rateChart', function ($query) use ($milkType, $targetDate) {
-                $query->forMilkType($milkType)
-                    ->active()
-                    ->effectiveOn($targetDate);
-            })
+            ->whereHas('rateChart', fn ($query) => $query->forMilkType($milkType))
             ->with(['rateChart.slabs'])
             ->orderByDesc('effective_from')
+            ->orderByDesc('id')
             ->first();
 
         if (! $assignment) {
-            throw new RuntimeException('No active rate chart assignment found for this center and date.');
+            throw new RuntimeException('rate_not_configured');
         }
 
         $rateChart = $assignment->rateChart;

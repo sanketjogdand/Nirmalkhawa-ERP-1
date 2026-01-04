@@ -16,7 +16,6 @@ class View extends Component
     public $perPage = 25;
     public $search = '';
     public $milkType = '';
-    public $status = '';
     public $effectiveOn = '';
 
     public function mount(): void
@@ -26,7 +25,7 @@ class View extends Component
 
     public function updating($field): void
     {
-        if (in_array($field, ['search', 'milkType', 'status', 'effectiveOn'])) {
+        if (in_array($field, ['search', 'milkType', 'effectiveOn'])) {
             $this->resetPage();
         }
     }
@@ -36,21 +35,26 @@ class View extends Component
         $this->resetPage();
     }
 
-    public function toggleStatus(int $chartId): void
+    public function deleteChart(int $chartId): void
     {
-        $this->authorize('ratechart.update');
+        $this->authorize('ratechart.delete');
 
         $chart = RateChart::findOrFail($chartId);
-        $chart->is_active = ! $chart->is_active;
-        $chart->save();
+        if ($chart->assignments()->exists()) {
+            session()->flash('error', 'Remove assignments before deleting this rate chart.');
+            return;
+        }
 
-        session()->flash('success', 'Rate chart status updated.');
+        $chart->delete();
+
+        session()->flash('success', 'Rate chart deleted.');
+        $this->resetPage();
     }
 
     public function render()
     {
         $charts = RateChart::query()
-            ->withCount(['assignments as active_assignments_count' => fn ($q) => $q->where('is_active', true)])
+            ->withCount('assignments')
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('name', 'like', '%'.$this->search.'%')
@@ -58,7 +62,6 @@ class View extends Component
                 });
             })
             ->when($this->milkType, fn ($q) => $q->where('milk_type', $this->milkType))
-            ->when($this->status !== '', fn ($q) => $q->where('is_active', $this->status === 'active'))
             ->when($this->effectiveOn, fn ($q) => $q->effectiveOn($this->effectiveOn))
             ->latest()
             ->paginate($this->perPage);

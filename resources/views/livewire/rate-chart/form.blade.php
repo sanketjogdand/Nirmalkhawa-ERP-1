@@ -42,14 +42,6 @@
                 <input id="effective_to" type="date" wire:model.live="effective_to" class="input-field">
                 @error('effective_to')<span style="color:red; font-size:12px;">{{ $message }}</span>@enderror
             </div>
-            <div class="form-group">
-                <label for="is_active">Active?</label>
-                <select id="is_active" wire:model.live="is_active" class="input-field">
-                    <option value="1">Active</option>
-                    <option value="0">Inactive</option>
-                </select>
-                @error('is_active')<span style="color:red; font-size:12px;">{{ $message }}</span>@enderror
-            </div>
         </div>
 
         <div style="margin-top: 1rem; text-align:center;">

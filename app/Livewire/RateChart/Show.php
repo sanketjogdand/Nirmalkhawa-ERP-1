@@ -29,7 +29,6 @@ class Show extends Component
     public array $selectedCenters = [];
     public $assignment_effective_from;
     public $assignment_effective_to;
-    public $assignment_is_active = true;
     public $centers = [];
 
     public function mount(RateChart $rateChart): void
@@ -124,9 +123,13 @@ class Show extends Component
 
         foreach ($data['selectedCenters'] as $centerId) {
             if ($this->hasOverlappingAssignment($centerId, $from, $to, $this->assignmentId)) {
-                $this->addError('selectedCenters', 'Selected center already has an active rate chart in this period.');
+                $this->addError('selectedCenters', 'Selected center already has a rate chart in this period.');
                 return;
             }
+        }
+
+        foreach ($data['selectedCenters'] as $centerId) {
+            $this->closePreviousAssignmentIfNeeded($centerId, $from, $this->assignmentId);
         }
 
         if ($this->assignmentId) {
@@ -135,7 +138,6 @@ class Show extends Component
                 'rate_chart_id' => $this->rateChart->id,
                 'effective_from' => $from,
                 'effective_to' => $to,
-                'is_active' => (bool) $data['assignment_is_active'],
             ]);
             session()->flash('success', 'Assignment updated.');
         } else {
@@ -145,7 +147,6 @@ class Show extends Component
                     'rate_chart_id' => $this->rateChart->id,
                     'effective_from' => $from,
                     'effective_to' => $to,
-                    'is_active' => (bool) $data['assignment_is_active'],
                 ]);
             }
             session()->flash('success', 'Assignments saved.');
@@ -163,26 +164,6 @@ class Show extends Component
         $this->selectedCenters = [$assignment->center_id];
         $this->assignment_effective_from = $assignment->effective_from?->toDateString();
         $this->assignment_effective_to = $assignment->effective_to?->toDateString();
-        $this->assignment_is_active = $assignment->is_active;
-    }
-
-    public function toggleAssignment(int $assignmentId): void
-    {
-        $this->authorize('ratechart.assign');
-        $assignment = CenterRateChart::where('rate_chart_id', $this->rateChart->id)->findOrFail($assignmentId);
-        if ($assignment->is_active) {
-            session()->flash('success', 'Assignment is already active.');
-            return;
-        }
-
-        if ($this->hasOverlappingAssignment($assignment->center_id, $assignment->effective_from->toDateString(), $assignment->effective_to?->toDateString(), $assignment->id)) {
-            session()->flash('error', 'Cannot activate due to another active rate chart for this center in the same period.');
-            return;
-        }
-
-        $assignment->update(['is_active' => true]);
-        $this->refreshChart();
-        session()->flash('success', 'Assignment activated.');
     }
 
     public function deleteAssignment(int $assignmentId): void
@@ -213,7 +194,6 @@ class Show extends Component
         $this->selectedCenters = [];
         $this->assignment_effective_from = null;
         $this->assignment_effective_to = null;
-        $this->assignment_is_active = true;
     }
 
     public function render()
@@ -240,7 +220,6 @@ class Show extends Component
             'selectedCenters.*' => ['required', 'exists:centers,id'],
             'assignment_effective_from' => ['required', 'date'],
             'assignment_effective_to' => ['nullable', 'date', 'after_or_equal:assignment_effective_from'],
-            'assignment_is_active' => ['boolean'],
         ];
     }
 
@@ -249,6 +228,24 @@ class Show extends Component
         $this->rateChart = $this->rateChart->fresh([
             'slabs' => fn ($q) => $q->orderBy('param_type')->orderBy('start_val'),
             'assignments.center',
+        ]);
+    }
+
+    private function closePreviousAssignmentIfNeeded(int $centerId, string $newFrom, ?int $ignoreId = null): void
+    {
+        $previousAssignment = CenterRateChart::query()
+            ->where('center_id', $centerId)
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->orderByDesc('effective_from')
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $previousAssignment || $previousAssignment->effective_from >= $newFrom) {
+            return;
+        }
+
+        $previousAssignment->update([
+            'effective_to' => Carbon::parse($newFrom)->subDay()->toDateString(),
         ]);
     }
 
@@ -270,7 +267,6 @@ class Show extends Component
 
         return CenterRateChart::query()
             ->where('center_id', $centerId)
-            ->where('is_active', true)
             ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
             ->where('effective_from', '<=', $toDate)
             ->where(function ($q) use ($from) {

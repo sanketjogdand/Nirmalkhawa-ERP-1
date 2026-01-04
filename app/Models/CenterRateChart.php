@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CenterRateChart extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'center_rate_chart';
 
     protected $fillable = [
@@ -14,13 +17,11 @@ class CenterRateChart extends Model
         'rate_chart_id',
         'effective_from',
         'effective_to',
-        'is_active',
     ];
 
     protected $casts = [
         'effective_from' => 'date',
         'effective_to' => 'date',
-        'is_active' => 'boolean',
     ];
 
     public function center(): BelongsTo
@@ -31,11 +32,6 @@ class CenterRateChart extends Model
     public function rateChart(): BelongsTo
     {
         return $this->belongsTo(RateChart::class);
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
     }
 
     public function scopeForDate($query, $date)

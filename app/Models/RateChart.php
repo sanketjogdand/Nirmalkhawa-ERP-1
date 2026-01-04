@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RateChart extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'code',
         'milk_type',
@@ -16,7 +19,6 @@ class RateChart extends Model
         'base_snf',
         'effective_from',
         'effective_to',
-        'is_active',
     ];
 
     protected $casts = [
@@ -25,7 +27,6 @@ class RateChart extends Model
         'base_snf' => 'float',
         'effective_from' => 'date',
         'effective_to' => 'date',
-        'is_active' => 'boolean',
     ];
 
     public function slabs(): HasMany
@@ -46,18 +47,13 @@ class RateChart extends Model
     public function centers(): BelongsToMany
     {
         return $this->belongsToMany(Center::class, 'center_rate_chart')
-            ->withPivot(['effective_from', 'effective_to', 'is_active'])
+            ->withPivot(['effective_from', 'effective_to'])
             ->withTimestamps();
     }
 
     public function assignments(): HasMany
     {
         return $this->hasMany(CenterRateChart::class);
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
     }
 
     public function scopeForMilkType($query, string $milkType)

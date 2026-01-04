@@ -175,6 +175,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'center.update',
             'ratechart.view',
             'ratechart.create',
+            'ratechart.update',
             'ratechart.assign',
             'milkintake.view',
             'milkintake.create',
