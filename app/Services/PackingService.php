@@ -7,9 +7,7 @@ use App\Models\PackSize;
 use App\Models\Packing;
 use App\Models\PackingMaterialUsage;
 use App\Models\Product;
-use App\Models\StockLedger;
 use App\Models\Unpacking;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -30,7 +28,7 @@ class PackingService
                 throw new RuntimeException('Add at least one packing line.');
             }
 
-            $availableBulk = $inventoryService->getOnHandStock($productId);
+            $availableBulk = $inventoryService->getOnHand($productId);
             if ($totalBulkQty > $availableBulk) {
                 throw new RuntimeException('Insufficient bulk stock. Required '.$totalBulkQty.' exceeds available '.$availableBulk.'.');
             }
@@ -43,7 +41,7 @@ class PackingService
 
                 foreach ($materialRequirements as $materialId => $requiredQty) {
                     $product = $materialProducts[$materialId] ?? null;
-                    $available = $inventoryService->getOnHandStock($materialId);
+                    $available = $inventoryService->getOnHand($materialId);
                     if ($requiredQty > $available) {
                         $name = $product?->name ?: ('Product ID '.$materialId);
                         throw new RuntimeException("Insufficient packing material {$name}. Need {$requiredQty}, available {$available}.");
@@ -83,40 +81,9 @@ class PackingService
 
             $this->persistMaterialUsages($packing, $usageRows, $packingItems);
 
-            $txnTimestamp = $payload['txn_datetime'] ?? (
-                ! empty($payload['date'])
-                    ? Carbon::parse($payload['date'])->setTimeFromTimeString(now()->format('H:i:s'))
-                    : now()
-            );
-
-            $inventoryService->postOut(
-                $productId,
-                $totalBulkQty,
-                StockLedger::TYPE_PACKING_BULK_OUT,
-                [
-                    'txn_datetime' => $txnTimestamp,
-                    'reference_type' => Packing::class,
-                    'reference_id' => $packing->id,
-                    'remarks' => $payload['remarks'] ?? 'Packing',
-                    'created_by' => $payload['created_by'] ?? auth()->id(),
-                ]
-            );
-
             foreach ($materialRequirements as $materialId => $requiredQty) {
                 $product = $materialProducts[$materialId] ?? null;
-                $inventoryService->postOut(
-                    $materialId,
-                    $requiredQty,
-                    StockLedger::TYPE_PACKING_MATERIAL_OUT,
-                    [
-                        'txn_datetime' => $txnTimestamp,
-                        'reference_type' => Packing::class,
-                        'reference_id' => $packing->id,
-                        'remarks' => trim(($payload['remarks'] ?? 'Packing').' (Packing material: '.($product->name ?? 'Material').')'),
-                        'created_by' => $payload['created_by'] ?? auth()->id(),
-                        'uom' => $product->uom ?? null,
-                    ]
-                );
+                // Material consumption is captured via packing_material_usages; ledger entry removed.
             }
 
             return $packing->load('items.packSize', 'product');
@@ -180,25 +147,6 @@ class PackingService
                 $inventory->pack_count = max(0, (int) $inventory->pack_count - $line['pack_count']);
                 $inventory->save();
             }
-
-            $txnTimestamp = $payload['txn_datetime'] ?? (
-                ! empty($payload['date'])
-                    ? Carbon::parse($payload['date'])->setTimeFromTimeString(now()->format('H:i:s'))
-                    : now()
-            );
-
-            $inventoryService->postIn(
-                $productId,
-                $totalBulkQty,
-                StockLedger::TYPE_UNPACKING_IN,
-                [
-                    'txn_datetime' => $txnTimestamp,
-                    'reference_type' => Unpacking::class,
-                    'reference_id' => $unpacking->id,
-                    'remarks' => $payload['remarks'] ?? 'Unpacking',
-                    'created_by' => $payload['created_by'] ?? auth()->id(),
-                ]
-            );
 
             return $unpacking->load('items.packSize', 'product');
         });

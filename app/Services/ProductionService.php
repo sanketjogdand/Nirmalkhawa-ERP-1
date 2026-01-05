@@ -5,8 +5,6 @@ namespace App\Services;
 use App\Models\Product;
 use App\Models\ProductionBatch;
 use App\Models\ProductionInput;
-use App\Models\StockLedger;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -78,12 +76,17 @@ class ProductionService
 
         return DB::transaction(function () use ($batch, $payload, $cleanInputs, $yieldData, $inventoryService) {
             $isNew = ! $batch->exists;
+            $existingUsage = $isNew ? [] : $this->inputTotalsByProduct($batch);
+
+            $this->ensureStockAvailable(
+                $cleanInputs,
+                $inventoryService,
+                $payload['date'] ?? $batch->date,
+                $existingUsage
+            );
 
             if (! $isNew) {
-                $inventoryService->reverseReference(ProductionBatch::class, $batch->id, 'Production batch updated - reversal');
-                \App\Models\StockLedger::where('reference_type', ProductionBatch::class)
-                    ->where('reference_id', $batch->id)
-                    ->delete();
+                $batch->inputs()->delete();
             }
 
             $data = array_merge($payload, $yieldData, [
@@ -96,11 +99,7 @@ class ProductionService
                 $batch->update($data);
             }
 
-            $batch->inputs()->delete();
             $batch->inputs()->createMany($cleanInputs);
-
-            $this->ensureStockAvailable($cleanInputs, $inventoryService, $payload['date'] ?? $batch->date);
-            $this->postLedger($batch, $inventoryService);
 
             return $batch->fresh(['inputs.materialProduct', 'outputProduct', 'recipe', 'yieldBaseProduct']);
         });
@@ -157,7 +156,12 @@ class ProductionService
         ];
     }
 
-    private function ensureStockAvailable(array $inputs, InventoryService $inventoryService, $productionDate = null): void
+    private function ensureStockAvailable(
+        array $inputs,
+        InventoryService $inventoryService,
+        $productionDate = null,
+        array $existingUsage = []
+    ): void
     {
         $productIds = collect($inputs)->pluck('material_product_id')->unique()->filter()->values();
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
@@ -181,7 +185,8 @@ class ProductionService
 
             $available = $productionDate
                 ? $inventoryService->getStockAsOf($input['material_product_id'], $productionDate)
-                : $inventoryService->getCurrentStock($input['material_product_id']);
+                : $inventoryService->getOnHand($input['material_product_id']);
+            $available += $existingUsage[$input['material_product_id']] ?? 0;
             if ($qty > $available) {
                 $productName = $products[$input['material_product_id']]->name ?? ('Product ID '.$input['material_product_id']);
                 $shortage = round($qty - $available, 3);
@@ -190,54 +195,14 @@ class ProductionService
         }
     }
 
-    private function postLedger(ProductionBatch $batch, InventoryService $inventoryService): void
+    private function inputTotalsByProduct(ProductionBatch $batch): array
     {
-        $timestamp = $batch->date
-            ? $batch->date->copy()->setTimeFromTimeString(now()->format('H:i:s'))
-            : now();
-        $reference = [
-            'reference_type' => ProductionBatch::class,
-            'reference_id' => $batch->id,
-            'txn_datetime' => $timestamp,
-        ];
-
-        $batch->loadMissing('inputs.materialProduct', 'outputProduct');
-
-        /** @var Collection<int, ProductionInput> $inputs */
-        $inputs = $batch->inputs;
-
-        foreach ($inputs as $input) {
-            $product = $input->materialProduct;
-            if (! $product || ! $product->can_consume) {
-                throw new RuntimeException('Material product is missing or not consumable.');
-            }
-            if ($input->actual_qty_used === null || $input->actual_qty_used <= 0) {
-                continue;
-            }
-
-            if (! $product->can_stock) {
-                continue;
-            }
-
-            $inventoryService->postOut(
-                $input->material_product_id,
-                (float) $input->actual_qty_used,
-                StockLedger::TYPE_PRODUCTION_OUT,
-                array_merge($reference, [
-                    'uom' => $input->uom ?: ($input->materialProduct->uom ?? null),
-                    'remarks' => 'Production input for batch '.$batch->id,
-                ])
-            );
-        }
-
-        $inventoryService->postIn(
-            $batch->output_product_id,
-            (float) $batch->actual_output_qty,
-            StockLedger::TYPE_PRODUCTION_IN,
-            array_merge($reference, [
-                'uom' => $batch->output_uom ?: ($batch->outputProduct->uom ?? null),
-                'remarks' => 'Production output for batch '.$batch->id,
-            ])
-        );
+        return $batch->inputs()
+            ->whereNotNull('actual_qty_used')
+            ->where('actual_qty_used', '>', 0)
+            ->get()
+            ->groupBy('material_product_id')
+            ->map(fn ($rows) => $rows->sum(fn ($row) => (float) $row->actual_qty_used))
+            ->all();
     }
 }

@@ -2,10 +2,8 @@
 
 namespace App\Livewire\Packing;
 
-use App\Models\PackInventory;
 use App\Models\PackSize;
 use App\Models\Product;
-use App\Models\StockLedger;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -39,13 +37,8 @@ class InventorySummary extends Component
 
     public function render()
     {
-        $balanceSub = StockLedger::whereNotIn('txn_type', [
-                StockLedger::TYPE_DISPATCH_PACK_OUT,
-                StockLedger::TYPE_DISPATCH_PACK_DELETED,
-                'DISPATCH_PACK', // legacy
-                'DISPATCH_PACK_DELETED', // legacy
-            ])
-            ->selectRaw('product_id, SUM(CASE WHEN is_increase = 1 THEN qty ELSE -qty END) as balance')
+        $balanceSub = DB::table('inventory_ledger_view')
+            ->selectRaw('product_id, SUM(qty_in - qty_out) as balance')
             ->groupBy('product_id');
 
         $products = Product::query()
@@ -63,12 +56,17 @@ class InventorySummary extends Component
 
         $productIds = $products->pluck('id');
         $packSizes = PackSize::whereIn('product_id', $productIds)->orderBy('pack_qty')->get()->groupBy('product_id');
-        $packInventory = PackInventory::whereIn('product_id', $productIds)->get()->keyBy('pack_size_id');
+        $packBalances = DB::table('pack_operations_view')
+            ->whereIn('product_id', $productIds)
+            ->selectRaw('product_id, pack_size_id, COALESCE(SUM(pack_count_in - pack_count_out), 0) as pack_balance')
+            ->groupBy('product_id', 'pack_size_id')
+            ->get()
+            ->keyBy(fn ($row) => $row->product_id.'-'.$row->pack_size_id);
 
         return view('livewire.packing.inventory-summary', [
             'products' => $products,
             'packSizes' => $packSizes,
-            'packInventory' => $packInventory,
+            'packBalances' => $packBalances,
         ])->with(['title_name' => $this->title ?? 'Pack Inventory']);
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Inventory;
 
-use App\Models\PackInventory;
 use App\Models\PackSize;
 use App\Models\Product;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -73,9 +72,17 @@ class StockSummary extends Component
 
         $productIds = $products->pluck('id');
         $packSizes = PackSize::whereIn('product_id', $productIds)->orderBy('pack_qty')->get()->groupBy('product_id');
-        $packInventory = PackInventory::whereIn('product_id', $productIds)->get()->groupBy('product_id');
+        $packBalances = DB::table('pack_operations_view')
+            ->whereIn('product_id', $productIds)
+            ->selectRaw('product_id, pack_size_id, COALESCE(SUM(pack_count_in - pack_count_out), 0) as pack_balance')
+            ->groupBy('product_id', 'pack_size_id')
+            ->get()
+            ->groupBy('product_id');
 
-        return view('livewire.inventory.stock-summary', compact('products', 'packSizes', 'packInventory'))
-            ->with(['title_name' => $this->title ?? 'Stock Summary']);
+        return view('livewire.inventory.stock-summary', [
+            'products' => $products,
+            'packSizes' => $packSizes,
+            'packBalances' => $packBalances,
+        ])->with(['title_name' => $this->title ?? 'Stock Summary']);
     }
 }

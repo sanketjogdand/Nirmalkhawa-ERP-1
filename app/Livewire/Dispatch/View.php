@@ -5,6 +5,7 @@ namespace App\Livewire\Dispatch;
 use App\Models\Dispatch;
 use App\Services\DispatchService;
 use App\Services\InventoryService;
+use App\Services\PackInventoryService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -59,7 +60,7 @@ class View extends Component
         $this->showPostModal = true;
     }
 
-    public function postConfirmed(DispatchService $dispatchService, InventoryService $inventoryService): void
+    public function postConfirmed(DispatchService $dispatchService, InventoryService $inventoryService, PackInventoryService $packInventoryService): void
     {
         $this->authorize('dispatch.post');
 
@@ -71,7 +72,7 @@ class View extends Component
         $dispatch = Dispatch::findOrFail($this->pendingPostId);
 
         try {
-            $dispatchService->post($dispatch, $inventoryService);
+            $dispatchService->post($dispatch, $inventoryService, $packInventoryService);
             session()->flash('success', 'Dispatch posted and stock updated.');
         } catch (RuntimeException $e) {
             session()->flash('danger', $e->getMessage());
@@ -134,7 +135,7 @@ class View extends Component
         $this->showDeleteModal = true;
     }
 
-    public function deleteConfirmed(DispatchService $dispatchService, InventoryService $inventoryService): void
+    public function deleteConfirmed(DispatchService $dispatchService, InventoryService $inventoryService, PackInventoryService $packInventoryService): void
     {
         $this->authorize('dispatch.delete');
 
@@ -146,7 +147,7 @@ class View extends Component
         $dispatch = Dispatch::findOrFail($this->pendingDeleteId);
 
         try {
-            $dispatchService->delete($dispatch, $inventoryService);
+            $dispatchService->delete($dispatch, $inventoryService, $packInventoryService);
             session()->flash('success', 'Dispatch deleted.');
         } catch (RuntimeException $e) {
             session()->flash('danger', $e->getMessage());

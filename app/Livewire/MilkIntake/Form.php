@@ -5,7 +5,6 @@ namespace App\Livewire\MilkIntake;
 use App\Models\Center;
 use App\Models\CenterSettlement;
 use App\Models\MilkIntake;
-use App\Models\StockLedger;
 use App\Services\MilkRateCalculator;
 use App\Services\InventoryService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -154,14 +153,11 @@ class Form extends Component
                 $this->abortIfSettled($record);
 
                 $record->update($payload);
-                $inventoryService->reverseReference(MilkIntake::class, $record->id, 'Milk intake updated - reversal');
                 $record->refresh();
-                $this->postLedger($inventoryService, $record);
                 session()->flash('success', 'Milk intake updated.');
             } else {
                 $record = MilkIntake::create($payload);
                 $this->milkIntakeId = $record->id;
-                $this->postLedger($inventoryService, $record);
                 session()->flash('success', 'Milk intake saved.');
             }
         });
@@ -244,7 +240,7 @@ class Form extends Component
             'center_id' => ['required', 'exists:centers,id'],
             'date' => ['required', 'date'],
             'shift' => ['required', Rule::in([MilkIntake::SHIFT_MORNING, MilkIntake::SHIFT_EVENING])],
-            'milk_type' => ['required', Rule::in(['CM', 'BM'])],
+            'milk_type' => ['required', Rule::in(['CM', 'BM', 'MIX'])],
             'qty_ltr' => ['required', 'numeric', 'gt:0'],
             'density_factor' => ['required', 'numeric', 'gt:0'],
             'fat_pct' => ['required', 'numeric', 'between:0,99.99'],
@@ -276,20 +272,4 @@ class Form extends Component
         return $calc->calculate($centerId, $milkType, $date, $qtyLtr);
     }
 
-    private function postLedger(InventoryService $inventoryService, MilkIntake $intake): void
-    {
-        $product = $inventoryService->getMilkProduct($intake->milk_type);
-        $dateString = $intake->date instanceof \Illuminate\Support\Carbon
-            ? $intake->date->toDateString()
-            : (string) $intake->date;
-        $timestamp = $dateString.' '.($intake->shift === MilkIntake::SHIFT_EVENING ? '18:00:00' : '06:00:00');
-
-        $inventoryService->postIn($product->id, (float) $intake->qty_ltr, StockLedger::TYPE_IN, [
-            'txn_datetime' => $timestamp,
-            'remarks' => 'Milk intake '.$intake->milk_type.' for center '.$intake->center_id,
-            // 'remarks' => 'Milk intake '.$intake->milk_type.' from '.$intake->center->name,
-            'reference_type' => MilkIntake::class,
-            'reference_id' => $intake->id,
-        ]);
-    }
 }

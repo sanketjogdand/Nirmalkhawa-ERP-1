@@ -3,8 +3,8 @@
 namespace App\Livewire\Production;
 
 use App\Models\ProductionBatch;
-use App\Models\StockLedger;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class Show extends Component
@@ -28,10 +28,26 @@ class Show extends Component
             'createdByUser',
         ])->findOrFail($production);
 
-        $this->ledgers = StockLedger::with('product')
-            ->where('reference_type', ProductionBatch::class)
-            ->where('reference_id', $this->batch->id)
-            ->orderBy('txn_datetime')
+        $inputIds = $this->batch->inputs->pluck('id');
+        $this->ledgers = DB::table('inventory_ledger_view as il')
+            ->leftJoin('products', 'products.id', '=', 'il.product_id')
+            ->select('il.*', 'products.name as product_name')
+            ->where(function ($query) use ($inputIds) {
+                $query->where(function ($sub) {
+                    $sub->where('il.ref_table', 'production_batches')
+                        ->where('il.ref_id', $this->batch->id);
+                });
+
+                if ($inputIds->isNotEmpty()) {
+                    $query->orWhere(function ($sub) use ($inputIds) {
+                        $sub->where('il.ref_table', 'production_inputs')
+                            ->whereIn('il.ref_id', $inputIds);
+                    });
+                }
+            })
+            ->orderBy('il.txn_date')
+            ->orderBy('il.created_at')
+            ->orderBy('il.ref_id')
             ->get();
     }
 

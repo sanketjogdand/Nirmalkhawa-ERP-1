@@ -52,6 +52,19 @@ class ProductSeeder extends Seeder
                 'is_active' => true,
                 'category' => 'Milk',
             ],
+            [
+                'name' => 'Khawa',
+                'code' => 'KHAWA',
+                'uom' => 'KG',
+                'is_packing' => false,
+                'can_purchase' => true,
+                'can_produce' => true,
+                'can_consume' => true,
+                'can_sell' => true,
+                'can_stock' => true,
+                'is_active' => true,
+                'category' => 'Khawa',
+            ],
         ];
 
         foreach ($products as $product) {

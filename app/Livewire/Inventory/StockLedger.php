@@ -20,6 +20,12 @@ class StockLedger extends Component
     public $fromDate = '';
     public $toDate = '';
     public $products;
+    public array $totals = [
+        'in' => 0.0,
+        'out' => 0.0,
+        'net' => 0.0,
+    ];
+    public array $runningBalances = [];
 
     public function mount(): void
     {
@@ -43,16 +49,39 @@ class StockLedger extends Component
 
     public function render()
     {
-        $ledgers = DB::table('inventory_ledger_view as il')
+        $this->runningBalances = [];
+
+        $filtered = DB::table('inventory_ledger_view as il')
             ->leftJoin('products', 'products.id', '=', 'il.product_id')
-            ->select('il.*', 'products.name as product_name', 'products.code as product_code')
             ->when($this->productId, fn ($q) => $q->where('il.product_id', $this->productId))
             ->when($this->txnType, fn ($q) => $q->where('il.txn_type', $this->txnType))
-            ->when($this->fromDate, fn ($q) => $q->whereDate('il.txn_datetime', '>=', $this->fromDate))
-            ->when($this->toDate, fn ($q) => $q->whereDate('il.txn_datetime', '<=', $this->toDate))
-            ->orderByDesc('il.txn_datetime')
-            ->orderByDesc('il.id')
+            ->when($this->fromDate, fn ($q) => $q->whereDate('il.txn_date', '>=', $this->fromDate))
+            ->when($this->toDate, fn ($q) => $q->whereDate('il.txn_date', '<=', $this->toDate));
+
+        $summary = (clone $filtered)
+            ->selectRaw('COALESCE(SUM(qty_in), 0) as total_in, COALESCE(SUM(qty_out), 0) as total_out')
+            ->first();
+
+        $this->totals = [
+            'in' => (float) ($summary->total_in ?? 0),
+            'out' => (float) ($summary->total_out ?? 0),
+            'net' => (float) ($summary->total_in ?? 0) - (float) ($summary->total_out ?? 0),
+        ];
+
+        $ledgers = (clone $filtered)
+            ->select('il.*', 'products.name as product_name', 'products.code as product_code')
+            ->orderByDesc('il.txn_date')
+            ->orderByDesc('il.created_at')
+            // ->orderByDesc('il.ref_table')
+            // ->orderByDesc('il.ref_id')
             ->paginate($this->perPage);
+
+        $running = 0.0;
+        $startIndex = ($ledgers->currentPage() - 1) * $ledgers->perPage();
+        foreach ($ledgers->items() as $index => $row) {
+            $running += (float) $row->qty_in - (float) $row->qty_out;
+            $this->runningBalances[$startIndex + $index] = $running;
+        }
 
         return view('livewire.inventory.stock-ledger', [
             'ledgers' => $ledgers,

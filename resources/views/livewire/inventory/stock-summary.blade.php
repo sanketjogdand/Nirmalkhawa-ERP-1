@@ -78,10 +78,10 @@
                 @forelse ($products as $product)
                     @php
                         $sizes = $packSizes->get($product->id) ?? collect();
-                        $inventory = $packInventory->get($product->id) ?? collect();
-                        $packedTotal = $sizes->sum(function ($size) use ($inventory) {
-                            $invRow = $inventory->firstWhere('pack_size_id', $size->id);
-                            $count = $invRow ? (int) $invRow->pack_count : 0;
+                        $packRows = $packBalances->get($product->id) ?? collect();
+                        $packedTotal = $sizes->sum(function ($size) use ($packRows) {
+                            $invRow = $packRows->firstWhere('pack_size_id', $size->id);
+                            $count = $invRow ? (int) $invRow->pack_balance : 0;
 
                             return (float) $size->pack_qty * $count;
                         });
@@ -105,8 +105,8 @@
                                 @else
                                     @foreach($sizes as $size)
                                         @php
-                                            $invRow = $inventory->firstWhere('pack_size_id', $size->id);
-                                            $count = $invRow ? (int) $invRow->pack_count : 0;
+                                            $invRow = $packRows->firstWhere('pack_size_id', $size->id);
+                                            $count = $invRow ? (int) $invRow->pack_balance : 0;
                                             $lineTotal = (float) $size->pack_qty * $count;
                                         @endphp
                                         <div style="font-size:13px;">

@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\MaterialConsumption;
 use App\Models\MaterialConsumptionLine;
 use App\Models\Product;
-use App\Models\StockLedger;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -32,7 +31,6 @@ class MaterialConsumptionService
             ]);
 
             $lines = $this->persistLines($record, $cleanLines);
-            $this->postLedger($record, $lines, $inventoryService);
 
             return $record->load(['lines.product', 'createdBy', 'lockedBy']);
         });
@@ -58,8 +56,6 @@ class MaterialConsumptionService
         );
 
         return DB::transaction(function () use ($consumption, $payload, $cleanLines, $inventoryService) {
-            $this->reverseLedger($consumption, $inventoryService, 'Material consumption updated - reversal');
-
             $consumption->update([
                 'consumption_date' => $payload['consumption_date'],
                 'consumption_type' => $payload['consumption_type'],
@@ -68,7 +64,6 @@ class MaterialConsumptionService
 
             $consumption->lines()->delete();
             $lines = $this->persistLines($consumption, $cleanLines);
-            $this->postLedger($consumption, $lines, $inventoryService);
 
             return $consumption->load(['lines.product', 'createdBy', 'lockedBy']);
         });
@@ -81,7 +76,6 @@ class MaterialConsumptionService
         }
 
         DB::transaction(function () use ($consumption, $inventoryService) {
-            $this->reverseLedger($consumption, $inventoryService, 'Material consumption deleted - reversal');
             $consumption->lines()->delete();
             $consumption->delete();
         });
@@ -159,7 +153,7 @@ class MaterialConsumptionService
         foreach ($totals as $productId => $requiredQty) {
             $baseAvailable = $date
                 ? $inventoryService->getStockAsOf((int) $productId, $date)
-                : $inventoryService->getCurrentStock((int) $productId);
+                : $inventoryService->getOnHand((int) $productId);
 
             $available = $baseAvailable + ($existingQty[(int) $productId] ?? 0);
             if ($requiredQty > $available) {
@@ -187,56 +181,6 @@ class MaterialConsumptionService
         }
 
         return $created;
-    }
-
-    private function postLedger(MaterialConsumption $consumption, Collection $lines, InventoryService $inventoryService): void
-    {
-        $timestamp = $this->consumptionTimestamp($consumption);
-
-        foreach ($lines as $line) {
-            $inventoryService->postOut(
-                (int) $line->product_id,
-                (float) $line->qty,
-                StockLedger::TYPE_MATERIAL_CONSUMPTION_OUT,
-                [
-                    'txn_datetime' => $timestamp,
-                    'uom' => $line->uom ?: $line->product?->uom,
-                    'remarks' => $line->remarks,
-                    'reference_type' => MaterialConsumptionLine::class,
-                    'reference_id' => $line->id,
-                ]
-            );
-        }
-    }
-
-    private function reverseLedger(MaterialConsumption $consumption, InventoryService $inventoryService, string $reason): void
-    {
-        $timestamp = $this->consumptionTimestamp($consumption, true);
-        $lines = $consumption->lines()->with('product')->get();
-
-        foreach ($lines as $line) {
-            $inventoryService->postIn(
-                (int) $line->product_id,
-                (float) $line->qty,
-                StockLedger::TYPE_MATERIAL_CONSUMPTION_REVERSAL,
-                [
-                    'txn_datetime' => $timestamp,
-                    'uom' => $line->uom ?: $line->product?->uom,
-                    'remarks' => $reason,
-                    'reference_type' => MaterialConsumptionLine::class,
-                    'reference_id' => $line->id,
-                ]
-            );
-        }
-    }
-
-    private function consumptionTimestamp(MaterialConsumption $consumption, bool $forReversal = false): Carbon
-    {
-        $baseDate = $consumption->consumption_date ? $consumption->consumption_date->toDateString() : now()->toDateString();
-        $timePart = now()->format('H:i:s');
-
-        return Carbon::parse("{$baseDate} {$timePart}")
-            ->addSeconds($forReversal ? 1 : 0);
     }
 
     private function lineQtyByProduct(MaterialConsumption $consumption): array

@@ -71,7 +71,7 @@
                         </td>
                         <td class="px-4 py-2 border dark:border-zinc-700">
                             Ref: {{ class_basename($row->reference_type) }} #{{ $row->reference_id }}
-                            <div style="font-size:12px; color:gray;">Ledger: {{ $row->operation === 'PACK' ? \App\Models\StockLedger::TYPE_PACKING_OUT : \App\Models\StockLedger::TYPE_UNPACKING_IN }}</div>
+                            <div style="font-size:12px; color:gray;">Ledger: {{ $row->operation === 'PACK' ? 'PACK_BULK_OUT' : 'UNPACK_BULK_IN' }}</div>
                         </td>
                     </tr>
                 @empty

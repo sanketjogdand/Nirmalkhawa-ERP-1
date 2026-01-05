@@ -4,11 +4,9 @@ namespace App\Services;
 
 use App\Models\Dispatch;
 use App\Models\DispatchLine;
-use App\Models\PackInventory;
-use App\Models\PackInventoryMovement;
 use App\Models\PackSize;
 use App\Models\Product;
-use App\Models\StockLedger;
+use App\Services\PackInventoryService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,14 +14,14 @@ use RuntimeException;
 
 class DispatchService
 {
-    public function create(array $payload, array $lines, InventoryService $inventoryService): Dispatch
+    public function create(array $payload, array $lines, InventoryService $inventoryService, PackInventoryService $packInventoryService): Dispatch
     {
         $cleanLines = $this->prepareLines($lines);
         if ($cleanLines->isEmpty()) {
             throw new RuntimeException('Add at least one dispatch line.');
         }
 
-        return DB::transaction(function () use ($payload, $cleanLines, $inventoryService) {
+        return DB::transaction(function () use ($payload, $cleanLines, $inventoryService, $packInventoryService) {
             $dispatch = Dispatch::create([
                 'dispatch_no' => $payload['dispatch_no'] ?? $this->generateDispatchNo($payload['dispatch_date'] ?? now()->toDateString()),
                 'dispatch_date' => $payload['dispatch_date'],
@@ -38,14 +36,14 @@ class DispatchService
             $this->persistLines($dispatch, $cleanLines);
 
             if ($dispatch->status === Dispatch::STATUS_POSTED) {
-                $this->applyPosting($dispatch, $inventoryService);
+                $this->applyPosting($dispatch, $inventoryService, $packInventoryService);
             }
 
             return $dispatch->load('lines.product', 'lines.customer', 'lines.packSize');
         });
     }
 
-    public function update(Dispatch $dispatch, array $payload, array $lines, InventoryService $inventoryService): Dispatch
+    public function update(Dispatch $dispatch, array $payload, array $lines, InventoryService $inventoryService, PackInventoryService $packInventoryService): Dispatch
     {
         if ($dispatch->is_locked) {
             throw new RuntimeException('Locked dispatch cannot be edited.');
@@ -56,11 +54,11 @@ class DispatchService
             throw new RuntimeException('Add at least one dispatch line.');
         }
 
-        return DB::transaction(function () use ($dispatch, $payload, $cleanLines, $inventoryService) {
+        return DB::transaction(function () use ($dispatch, $payload, $cleanLines, $inventoryService, $packInventoryService) {
             $wasPosted = $dispatch->status === Dispatch::STATUS_POSTED;
 
             if ($wasPosted) {
-                $this->reversePosting($dispatch, $inventoryService, 'Dispatch updated - reversal');
+                $this->reversePosting($dispatch, $inventoryService, $packInventoryService, 'Dispatch updated - reversal');
             }
 
             $dispatch->update([
@@ -76,22 +74,22 @@ class DispatchService
             $this->persistLines($dispatch, $cleanLines);
 
             if ($dispatch->status === Dispatch::STATUS_POSTED) {
-                $this->applyPosting($dispatch, $inventoryService);
+                $this->applyPosting($dispatch, $inventoryService, $packInventoryService);
             }
 
             return $dispatch->load('lines.product', 'lines.customer', 'lines.packSize');
         });
     }
 
-    public function delete(Dispatch $dispatch, InventoryService $inventoryService): void
+    public function delete(Dispatch $dispatch, InventoryService $inventoryService, PackInventoryService $packInventoryService): void
     {
         if ($dispatch->is_locked) {
             throw new RuntimeException('Locked dispatch cannot be deleted.');
         }
 
-        DB::transaction(function () use ($dispatch, $inventoryService) {
+        DB::transaction(function () use ($dispatch, $inventoryService, $packInventoryService) {
             if ($dispatch->status === Dispatch::STATUS_POSTED) {
-                $this->reversePosting($dispatch, $inventoryService, 'Dispatch deleted - reversal');
+                $this->reversePosting($dispatch, $inventoryService, $packInventoryService, 'Dispatch deleted - reversal');
             }
 
             $dispatch->lines()->delete();
@@ -99,7 +97,7 @@ class DispatchService
         });
     }
 
-    public function post(Dispatch $dispatch, InventoryService $inventoryService): Dispatch
+    public function post(Dispatch $dispatch, InventoryService $inventoryService, PackInventoryService $packInventoryService): Dispatch
     {
         if ($dispatch->is_locked) {
             throw new RuntimeException('Locked dispatch cannot be posted.');
@@ -109,8 +107,8 @@ class DispatchService
             return $dispatch;
         }
 
-        return DB::transaction(function () use ($dispatch, $inventoryService) {
-            $this->applyPosting($dispatch, $inventoryService);
+        return DB::transaction(function () use ($dispatch, $inventoryService, $packInventoryService) {
+            $this->applyPosting($dispatch, $inventoryService, $packInventoryService);
 
             return $dispatch->refresh()->load('lines.product', 'lines.customer', 'lines.packSize');
         });
@@ -225,167 +223,45 @@ class DispatchService
         );
     }
 
-    private function applyPosting(Dispatch $dispatch, InventoryService $inventoryService): void
+    private function applyPosting(Dispatch $dispatch, InventoryService $inventoryService, PackInventoryService $packInventoryService): void
     {
         $dispatch->loadMissing('lines.product');
-        $this->ensureStockAvailable($dispatch, $inventoryService);
-
-        $txnTimestamp = $dispatch->dispatch_date
-            ? $dispatch->dispatch_date->copy()->setTimeFromTimeString(now()->format('H:i:s'))
-            : now();
-
-        foreach ($dispatch->lines as $line) {
-            if ($line->sale_mode === DispatchLine::MODE_BULK) {
-                $inventoryService->postOut(
-                    $line->product_id,
-                    (float) $line->qty_bulk,
-                    StockLedger::TYPE_DISPATCH_BULK_OUT,
-                    [
-                        'txn_datetime' => $txnTimestamp,
-                        'uom' => $line->uom ?: ($line->product->uom ?? null),
-                        'remarks' => 'Dispatch '.$dispatch->dispatch_no,
-                        'reference_type' => DispatchLine::class,
-                        'reference_id' => $line->id,
-                        'created_by' => $dispatch->created_by ?? Auth::id(),
-                    ]
-                );
-            } else {
-                /** @var PackInventory $inventory */
-                $inventory = PackInventory::lockForUpdate()->firstOrNew([
-                    'product_id' => $line->product_id,
-                    'pack_size_id' => $line->pack_size_id,
-                ]);
-
-                $available = (int) $inventory->pack_count;
-                if ($line->pack_count > $available) {
-                    throw new RuntimeException('Insufficient pack stock for dispatch line #'.$line->id.'. Available '.$available.', need '.$line->pack_count.'.');
-                }
-
-                $inventory->pack_count = max(0, $available - $line->pack_count);
-                $inventory->save();
-
-                PackInventoryMovement::create([
-                    'product_id' => $line->product_id,
-                    'pack_size_id' => $line->pack_size_id,
-                    'pack_count_change' => -1 * (int) $line->pack_count,
-                    'pack_qty_snapshot' => $line->pack_qty_snapshot,
-                    'pack_uom' => $line->pack_uom,
-                    'direction' => PackInventoryMovement::DIR_OUT,
-                    'remarks' => 'Dispatch '.$dispatch->dispatch_no,
-                    'reference_type' => DispatchLine::class,
-                    'reference_id' => $line->id,
-                ]);
-
-                StockLedger::create([
-                    'product_id' => $line->product_id,
-                    'txn_datetime' => $txnTimestamp,
-                    'txn_type' => StockLedger::TYPE_DISPATCH_PACK_OUT,
-                    'is_increase' => false,
-                    'qty' => $line->computed_total_qty ?? 0,
-                    'uom' => $line->pack_uom ?? ($line->product->uom ?? null),
-                    'rate' => null,
-                    'reference_type' => DispatchLine::class,
-                    'reference_id' => $line->id,
-                    'remarks' => 'Dispatch '.$dispatch->dispatch_no.' (pack)',
-                    'created_by' => $dispatch->created_by ?? Auth::id(),
-                ]);
-            }
-        }
+        $this->ensureStockAvailable($dispatch, $inventoryService, $packInventoryService);
 
         $dispatch->update(['status' => Dispatch::STATUS_POSTED]);
     }
 
-    private function reversePosting(Dispatch $dispatch, InventoryService $inventoryService, string $remarks = 'Dispatch reversal'): void
+    private function reversePosting(Dispatch $dispatch, InventoryService $inventoryService, PackInventoryService $packInventoryService, string $remarks = 'Dispatch reversal'): void
     {
         $dispatch->loadMissing('lines');
-
-        foreach ($dispatch->lines as $line) {
-            if ($line->sale_mode === DispatchLine::MODE_BULK) {
-                StockLedger::create([
-                    'product_id' => $line->product_id,
-                    'txn_datetime' => now(),
-                    'txn_type' => StockLedger::TYPE_DISPATCH_BULK_DELETED,
-                    'is_increase' => true,
-                    'qty' => (float) $line->qty_bulk,
-                    'uom' => $line->uom ?? ($line->product->uom ?? null),
-                    'rate' => null,
-                    'reference_type' => DispatchLine::class,
-                    'reference_id' => $line->id,
-                    'remarks' => $remarks,
-                    'created_by' => Auth::id(),
-                ]);
-            } else {
-                /** @var PackInventory $inventory */
-                $inventory = PackInventory::lockForUpdate()->firstOrNew([
-                    'product_id' => $line->product_id,
-                    'pack_size_id' => $line->pack_size_id,
-                ]);
-
-                $inventory->pack_count = (int) $inventory->pack_count + (int) $line->pack_count;
-                $inventory->save();
-
-                PackInventoryMovement::create([
-                    'product_id' => $line->product_id,
-                    'pack_size_id' => $line->pack_size_id,
-                    'pack_count_change' => (int) $line->pack_count,
-                    'pack_qty_snapshot' => $line->pack_qty_snapshot,
-                    'pack_uom' => $line->pack_uom,
-                    'direction' => PackInventoryMovement::DIR_IN,
-                    'remarks' => $remarks,
-                    'reference_type' => DispatchLine::class,
-                    'reference_id' => $line->id,
-                ]);
-
-                StockLedger::create([
-                    'product_id' => $line->product_id,
-                    'txn_datetime' => now(),
-                    'txn_type' => StockLedger::TYPE_DISPATCH_PACK_DELETED,
-                    'is_increase' => true,
-                    'qty' => $line->computed_total_qty ?? 0,
-                    'uom' => $line->pack_uom ?? ($line->product->uom ?? null),
-                    'rate' => null,
-                    'reference_type' => DispatchLine::class,
-                    'reference_id' => $line->id,
-                    'remarks' => $remarks.' (pack reversal)',
-                    'created_by' => Auth::id(),
-                ]);
-            }
-        }
     }
 
-    private function ensureStockAvailable(Dispatch $dispatch, InventoryService $inventoryService): void
+    private function ensureStockAvailable(Dispatch $dispatch, InventoryService $inventoryService, PackInventoryService $packInventoryService): void
     {
         $dispatch->loadMissing('lines.product');
 
-        $bulkLines = $dispatch->lines->where('sale_mode', DispatchLine::MODE_BULK);
-        $packLines = $dispatch->lines->where('sale_mode', DispatchLine::MODE_PACK);
+        foreach ($dispatch->lines as $line) {
+            if ($line->sale_mode === DispatchLine::MODE_BULK) {
+                $required = (float) ($line->qty_bulk ?? 0);
+                $available = $inventoryService->getOnHand((int) $line->product_id);
+                if ($dispatch->status === Dispatch::STATUS_POSTED) {
+                    $available += $required;
+                }
 
-        $bulkProductIds = $bulkLines->pluck('product_id')->unique();
-        $bulkProducts = Product::whereIn('id', $bulkProductIds)->get()->keyBy('id');
-
-        foreach ($bulkLines as $line) {
-            $available = $inventoryService->getCurrentStock($line->product_id);
-            $required = (float) $line->qty_bulk;
-
-            if ($required > $available) {
-                $name = $bulkProducts[$line->product_id]->name ?? ('Product ID '.$line->product_id);
-                throw new RuntimeException("Insufficient bulk stock for {$name}. Need {$required}, available {$available}.");
-            }
-        }
-
-        if ($packLines->isNotEmpty()) {
-            $packInventory = PackInventory::whereIn('product_id', $packLines->pluck('product_id'))
-                ->whereIn('pack_size_id', $packLines->pluck('pack_size_id'))
-                ->get()
-                ->keyBy(fn ($row) => $row->product_id.'-'.$row->pack_size_id);
-
-            foreach ($packLines as $line) {
-                $key = $line->product_id.'-'.$line->pack_size_id;
-                $available = (int) ($packInventory[$key]->pack_count ?? 0);
-
-                if ($line->pack_count > $available) {
+                if ($required > $available) {
                     $name = $line->product->name ?? ('Product ID '.$line->product_id);
-                    throw new RuntimeException("Insufficient pack stock for {$name}. Need {$line->pack_count}, available {$available}.");
+                    throw new RuntimeException("Insufficient bulk stock for {$name}. Need {$required}, available {$available}.");
+                }
+            } else {
+                $required = (int) ($line->pack_count ?? 0);
+                $available = $packInventoryService->getPackOnHand((int) $line->product_id, (int) $line->pack_size_id);
+                if ($dispatch->status === Dispatch::STATUS_POSTED) {
+                    $available += $required;
+                }
+
+                if ($required > $available) {
+                    $name = $line->product->name ?? ('Product ID '.$line->product_id);
+                    throw new RuntimeException("Insufficient pack stock for {$name}. Need {$required}, available {$available}.");
                 }
             }
         }

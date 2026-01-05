@@ -18,23 +18,16 @@
             <label for="txnType">Transaction Type</label>
             <select id="txnType" wire:model.live="txnType" class="input-field">
                 <option value="">All</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_OPENING }}">Opening</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_IN }}">In</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_OUT }}">Out</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_ADJ }}">Adjustment</option>
+                <option value="GRN_IN">GRN In</option>
+                <option value="PRODUCTION_OUT_IN">Production Output</option>
+                <option value="UNPACK_BULK_IN">Unpack Bulk In</option>
                 <option value="ADJUSTMENT_IN">Adjustment In</option>
+                <option value="PRODUCTION_CONSUMPTION_OUT">Production Consumption Out</option>
+                <option value="MATERIAL_CONSUMPTION_OUT">Material Consumption Out</option>
+                <option value="PACK_BULK_OUT">Pack Bulk Out</option>
+                <option value="PACK_MATERIAL_OUT">Pack Material Out</option>
+                <option value="DISPATCH_OUT">Dispatch Out</option>
                 <option value="ADJUSTMENT_OUT">Adjustment Out</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_PRODUCTION_IN }}">Production In</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_PRODUCTION_OUT }}">Production Out</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_TRANSFER }}">Transfer</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_PACKING_OUT }}">Packing Out</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_UNPACKING_IN }}">Unpacking In</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_BULK_OUT }}">Dispatch Bulk Out</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_PACK_OUT }}">Dispatch Pack Out</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_BULK_DELETED }}">Dispatch Bulk Deleted</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_DISPATCH_PACK_DELETED }}">Dispatch Pack Deleted</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_GRN_IN }}">GRN In</option>
-                <option value="{{ \App\Models\StockLedger::TYPE_GRN_REVERSAL }}">GRN Reversal</option>
             </select>
         </div>
         <div class="form-group">
@@ -61,51 +54,58 @@
         <table class="product-table hover-highlight">
             <thead>
                 <tr>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Date/Time</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Date</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Product</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">Type</th>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Qty</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Qty In</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Qty Out</th>
                     <th class="px-4 py-2 border dark:border-zinc-700">UOM</th>
-                    <th class="px-4 py-2 border dark:border-zinc-700">Remarks / Reference</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Reference</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Remarks</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Created at</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($ledgers as $entry)
                     <tr>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ \Illuminate\Support\Carbon::parse($entry->txn_datetime)->format('d M Y H:i') }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ \Illuminate\Support\Carbon::parse($entry->txn_date)->format('d M Y') }}</td>
                         <td class="px-4 py-2 border dark:border-zinc-700">
-                            {{ $entry->product_name }}
-                            <div style="font-size:12px; color:gray;">{{ $entry->product_code }}</div>
-                        </td>
-                        @php
-                            $typeLabel = $entry->txn_type;
-                            if ($entry->txn_type === 'DISPATCH_OUT') {
-                                $typeLabel = 'DISPATCH_BULK_OUT';
-                            } elseif ($entry->txn_type === 'DISPATCH_PACK') {
-                                $typeLabel = 'DISPATCH_PACK_OUT';
-                            }
-
-                            $signedQty = (float) $entry->qty_in - (float) $entry->qty_out;
-                        @endphp
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $typeLabel }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700" style="font-weight:600; color: {{ $signedQty >= 0 ? '#16a34a' : '#dc2626' }};">
-                            {{ $signedQty >= 0 ? '+' : '' }}{{ number_format($signedQty, 3) }}
-                        </td>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->uom }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700">
-                            {{ $entry->remarks }}
-                            @if($entry->ref_table && $entry->ref_id)
-                                <div style="font-size:12px; color:gray;">Ref: {{ $entry->ref_table }} #{{ $entry->ref_id }}</div>
+                            {{ $entry->product_name ?? 'N/A' }}
+                            @if($entry->product_code)
+                                <div style="font-size:12px; color:gray;">{{ $entry->product_code }}</div>
                             @endif
                         </td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->txn_type }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700" style="font-weight:600; color:#16a34a;">
+                            {{ number_format($entry->qty_in, 3) }}
+                        </td>
+                        <td class="px-4 py-2 border dark:border-zinc-700" style="font-weight:600; color:#dc2626;">
+                            {{ number_format($entry->qty_out, 3) }}
+                        </td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->uom }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700" style="font-size:12px; color:gray;">
+                            @if($entry->ref_table && $entry->ref_id)
+                                {{ $entry->ref_table }} #{{ $entry->ref_id }}
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $entry->remarks }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ \Illuminate\Support\Carbon::parse($entry->created_at)->format('d M Y H:i:s') }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No ledger entries found.</td>
+                        <td colspan="9" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No ledger entries found.</td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:16px; flex-wrap:wrap;">
+        <div><strong>Total In:</strong> {{ number_format($totals['in'] ?? 0, 3) }}</div>
+        <div><strong>Total Out:</strong> {{ number_format($totals['out'] ?? 0, 3) }}</div>
+        <div><strong>Net:</strong> {{ number_format($totals['net'] ?? 0, 3) }}</div>
     </div>
 
     <div class="pagination-wrapper">

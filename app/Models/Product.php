@@ -38,11 +38,6 @@ class Product extends Model
         'is_active' => 'boolean',
     ];
 
-    public function ledgers(): HasMany
-    {
-        return $this->hasMany(StockLedger::class);
-    }
-
     public function recipes(): HasMany
     {
         return $this->hasMany(Recipe::class, 'output_product_id');

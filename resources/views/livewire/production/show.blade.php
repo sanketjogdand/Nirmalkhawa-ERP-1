@@ -80,12 +80,12 @@
     </div>
 
     <div class="form-group span-3" style="margin-top:1rem;">
-        <h3 style="margin:0 0 6px 0;">Stock Ledger Entries</h3>
+        <h3 style="margin:0 0 6px 0;">Inventory Movements</h3>
         <div class="table-wrapper">
             <table class="product-table hover-highlight">
                 <thead>
                     <tr>
-                        <th class="px-4 py-2 border dark:border-zinc-700">When</th>
+                        <th class="px-4 py-2 border dark:border-zinc-700">Date</th>
                         <th class="px-4 py-2 border dark:border-zinc-700">Product</th>
                         <th class="px-4 py-2 border dark:border-zinc-700">Type</th>
                         <th class="px-4 py-2 border dark:border-zinc-700">Qty</th>
@@ -95,10 +95,11 @@
                 <tbody>
                     @forelse($ledgers as $ledger)
                         <tr>
-                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $ledger->txn_datetime?->format('Y-m-d H:i') }}</td>
-                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $ledger->product->name ?? 'N/A' }}</td>
-                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $ledger->txn_type }} {{ $ledger->is_increase ? '(IN)' : '(OUT)' }}</td>
-                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $ledger->qty }} {{ $ledger->uom }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ \Illuminate\Support\Carbon::parse($ledger->txn_date)->format('Y-m-d') }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $ledger->product_name ?? 'N/A' }}</td>
+                            @php $net = (float) $ledger->qty_in - (float) $ledger->qty_out; @endphp
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $ledger->txn_type }}</td>
+                            <td class="px-4 py-2 border dark:border-zinc-700">{{ $net >= 0 ? '+' : '' }}{{ number_format($net, 3) }} {{ $ledger->uom }}</td>
                             <td class="px-4 py-2 border dark:border-zinc-700">{{ $ledger->remarks }}</td>
                         </tr>
                     @empty

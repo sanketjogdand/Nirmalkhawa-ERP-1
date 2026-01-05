@@ -3,45 +3,76 @@
 namespace App\Services;
 
 use App\Models\Product;
-use App\Models\StockLedger;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
-use Carbon\Carbon;
 
 class InventoryService
 {
-    private array $excludedTxnTypes = [
-        StockLedger::TYPE_DISPATCH_PACK_OUT,
-        StockLedger::TYPE_DISPATCH_PACK_DELETED,
-        'DISPATCH_PACK', // legacy
-        'DISPATCH_PACK_DELETED', // legacy
-    ];
-
-    public function getCurrentStock(int $productId): float
+    public function getOnHand(int $productId): float
     {
-        return (float) $this->ledgerView()
+        return (float) DB::table('inventory_ledger_view')
             ->where('product_id', $productId)
             ->selectRaw('COALESCE(SUM(qty_in - qty_out), 0) as balance')
             ->value('balance');
     }
 
-    /**
-     * Computes on-hand quantity; kept separate so future movement-based logic can replace ledger sums.
-     */
-    public function getOnHandStock(int $productId): float
+    public function getOnHandMany(array $productIds): Collection
     {
-        return $this->getCurrentStock($productId);
+        $ids = array_filter(array_unique(array_map('intval', $productIds)));
+        if (empty($ids)) {
+            return collect();
+        }
+
+        return DB::table('inventory_ledger_view')
+            ->whereIn('product_id', $ids)
+            ->selectRaw('product_id, COALESCE(SUM(qty_in - qty_out), 0) as balance')
+            ->groupBy('product_id')
+            ->pluck('balance', 'product_id');
     }
 
     public function getStockAsOf(int $productId, $asOf): float
     {
-        $asOfTimestamp = $asOf ? Carbon::parse($asOf)->endOfDay() : now();
+        $asOfDate = $asOf ? Carbon::parse($asOf)->toDateString() : now()->toDateString();
 
-        return (float) $this->ledgerView()
+        return (float) DB::table('inventory_ledger_view')
             ->where('product_id', $productId)
-            ->where('txn_datetime', '<=', $asOfTimestamp)
+            ->whereDate('txn_date', '<=', $asOfDate)
             ->selectRaw('COALESCE(SUM(qty_in - qty_out), 0) as balance')
             ->value('balance');
+    }
+
+    public function assertSufficientStock(int $productId, float $requiredQty, string $contextMessage = ''): void
+    {
+        if ($requiredQty <= 0) {
+            return;
+        }
+
+        $available = $this->getOnHand($productId);
+        if ($requiredQty > $available) {
+            $product = Product::find($productId);
+            $name = $product?->name ?? ('Product ID '.$productId);
+            $prefix = $contextMessage ? $contextMessage.': ' : '';
+            $shortage = round($requiredQty - $available, 3);
+            throw new RuntimeException("{$prefix}Insufficient stock for {$name}. Available {$available}, required {$requiredQty}. Short by {$shortage}.");
+        }
+    }
+
+    /**
+     * Backward-compatible helper for older calls that fetched current stock.
+     */
+    public function getCurrentStock(int $productId): float
+    {
+        return $this->getOnHand($productId);
+    }
+
+    /**
+     * Backward-compatible helper for older calls.
+     */
+    public function getOnHandStock(int $productId): float
+    {
+        return $this->getOnHand($productId);
     }
 
     public function getMilkProduct(string $milkType): Product
@@ -63,109 +94,5 @@ class InventoryService
         }
 
         return $product;
-    }
-
-    public function postIn(int $productId, float $qty, string $txnType = StockLedger::TYPE_IN, array $options = []): StockLedger
-    {
-        return $this->createEntry($productId, $qty, $txnType, true, $options);
-    }
-
-    public function postOut(int $productId, float $qty, string $txnType = StockLedger::TYPE_OUT, array $options = [], bool $allowNegative = false): StockLedger
-    {
-        return DB::transaction(function () use ($productId, $qty, $txnType, $options, $allowNegative) {
-            if (! $allowNegative) {
-                $available = $this->getCurrentStock($productId);
-                if ($qty > $available) {
-                    throw new RuntimeException('Insufficient stock for product ID '.$productId);
-                }
-            }
-
-            return $this->createEntry($productId, $qty, $txnType, false, $options);
-        });
-    }
-
-    public function transfer(int $fromProductId, int $toProductId, float $qty, ?string $remarks = null, array $options = []): array
-    {
-        if ($qty <= 0) {
-            throw new RuntimeException('Transfer quantity must be greater than zero.');
-        }
-
-        $timestamp = $options['txn_datetime'] ?? now();
-        $userId = $options['created_by'] ?? auth()->id();
-
-        return DB::transaction(function () use ($fromProductId, $toProductId, $qty, $remarks, $timestamp, $userId, $options) {
-            $transferRemarks = $remarks ?: 'Inventory transfer';
-
-            $outEntry = $this->postOut($fromProductId, $qty, StockLedger::TYPE_TRANSFER, [
-                'txn_datetime' => $timestamp,
-                'remarks' => $transferRemarks.' - OUT',
-                'created_by' => $userId,
-                'reference_type' => $options['reference_type'] ?? null,
-                'reference_id' => $options['reference_id'] ?? null,
-            ], $options['allow_negative'] ?? false);
-
-            $inEntry = $this->postIn($toProductId, $qty, StockLedger::TYPE_TRANSFER, [
-                'txn_datetime' => $timestamp,
-                'remarks' => $transferRemarks.' - IN',
-                'created_by' => $userId,
-                'reference_type' => $options['reference_type'] ?? null,
-                'reference_id' => $options['reference_id'] ?? null,
-            ]);
-
-            return [$outEntry, $inEntry];
-        });
-    }
-
-    public function reverseReference(string $referenceType, int $referenceId, string $remarks = 'Reversal entry'): void
-    {
-        $entries = StockLedger::where('reference_type', $referenceType)
-            ->where('reference_id', $referenceId)
-            ->get();
-
-        foreach ($entries as $entry) {
-            $this->createEntry(
-                $entry->product_id,
-                (float) $entry->qty,
-                StockLedger::TYPE_ADJ,
-                ! $entry->is_increase,
-                [
-                    'txn_datetime' => now(),
-                    'uom' => $entry->uom,
-                    'rate' => $entry->rate,
-                    'remarks' => $remarks,
-                    'created_by' => auth()->id(),
-                    'reference_type' => $entry->reference_type,
-                    'reference_id' => $entry->reference_id,
-                ]
-            );
-        }
-    }
-
-    private function createEntry(int $productId, float $qty, string $txnType, bool $isIncrease, array $options): StockLedger
-    {
-        if ($qty <= 0) {
-            throw new RuntimeException('Quantity must be greater than zero.');
-        }
-
-        $product = Product::findOrFail($productId);
-
-        return StockLedger::create([
-            'product_id' => $productId,
-            'txn_datetime' => $options['txn_datetime'] ?? now(),
-            'txn_type' => $txnType,
-            'is_increase' => $isIncrease,
-            'qty' => $qty,
-            'uom' => $options['uom'] ?? $product->uom,
-            'rate' => $options['rate'] ?? null,
-            'reference_type' => $options['reference_type'] ?? null,
-            'reference_id' => $options['reference_id'] ?? null,
-            'remarks' => $options['remarks'] ?? null,
-            'created_by' => $options['created_by'] ?? auth()->id(),
-        ]);
-    }
-
-    private function ledgerView()
-    {
-        return DB::table('inventory_ledger_view')->whereNotIn('txn_type', $this->excludedTxnTypes);
     }
 }

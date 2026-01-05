@@ -121,7 +121,7 @@ class Form extends Component
                 continue;
             }
 
-            $available = $inventoryService->getCurrentStock((int) $input['material_product_id']);
+            $available = $inventoryService->getOnHand((int) $input['material_product_id']);
             $needed = (float) $input['actual_qty_used'];
             if ($needed > $available) {
                 $productName = $products[$input['material_product_id']]->name ?? ('Product ID '.$input['material_product_id']);

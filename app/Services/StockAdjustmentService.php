@@ -174,7 +174,7 @@ class StockAdjustmentService
         foreach ($totals as $productId => $byDirection) {
             $baseAvailable = $adjustmentDate
                 ? $inventoryService->getStockAsOf((int) $productId, $adjustmentDate)
-                : $inventoryService->getCurrentStock((int) $productId);
+                : $inventoryService->getOnHand((int) $productId);
 
             $existing = $existingTotals[$productId] ?? ['in' => 0.0, 'out' => 0.0];
             $availableBeforeChange = $baseAvailable - ($existing['in'] ?? 0) + ($existing['out'] ?? 0);

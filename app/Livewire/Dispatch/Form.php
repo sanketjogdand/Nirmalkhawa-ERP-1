@@ -5,11 +5,11 @@ namespace App\Livewire\Dispatch;
 use App\Models\Customer;
 use App\Models\Dispatch;
 use App\Models\DispatchLine;
-use App\Models\PackInventory;
 use App\Models\PackSize;
 use App\Models\Product;
 use App\Services\DispatchService;
 use App\Services\InventoryService;
+use App\Services\PackInventoryService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -174,10 +174,10 @@ class Form extends Component
         $this->refreshAvailability();
     }
 
-    public function saveAndPost(DispatchService $dispatchService, InventoryService $inventoryService)
+    public function saveAndPost(DispatchService $dispatchService, InventoryService $inventoryService, PackInventoryService $packInventoryService)
     {
         $this->status = Dispatch::STATUS_POSTED;
-        return $this->saveInternal($dispatchService, $inventoryService);
+        return $this->saveInternal($dispatchService, $inventoryService, $packInventoryService);
     }
 
     public function render()
@@ -193,7 +193,7 @@ class Form extends Component
             ]);
     }
 
-    private function saveInternal(DispatchService $dispatchService, InventoryService $inventoryService)
+    private function saveInternal(DispatchService $dispatchService, InventoryService $inventoryService, PackInventoryService $packInventoryService)
     {
         $this->authorize($this->dispatchId ? 'dispatch.update' : 'dispatch.create');
 
@@ -260,10 +260,10 @@ class Form extends Component
         try {
             if ($this->dispatchId) {
                 $dispatch = Dispatch::findOrFail($this->dispatchId);
-                $dispatchService->update($dispatch, $payload, $data['lines'], $inventoryService);
+                $dispatchService->update($dispatch, $payload, $data['lines'], $inventoryService, $packInventoryService);
                 session()->flash('success', 'Dispatch updated.');
             } else {
-                $dispatch = $dispatchService->create($payload, $data['lines'], $inventoryService);
+                $dispatch = $dispatchService->create($payload, $data['lines'], $inventoryService, $packInventoryService);
                 session()->flash('success', 'Dispatch saved.');
             }
         } catch (RuntimeException $e) {
@@ -299,23 +299,42 @@ class Form extends Component
         $packSizeIds = collect($this->lines)->pluck('pack_size_id')->filter()->unique();
 
         $inventoryService = app(InventoryService::class);
+        $packInventoryService = app(PackInventoryService::class);
+
+        $isEditingPosted = $this->dispatchId && $this->status === Dispatch::STATUS_POSTED;
+
+        $lineTotals = collect($this->lines)
+            ->where('sale_mode', DispatchLine::MODE_BULK)
+            ->groupBy('product_id')
+            ->map(function ($items) {
+                return $items->sum(fn ($line) => (float) ($line['qty_bulk'] ?? $line['computed_total_qty'] ?? 0));
+            });
 
         $this->bulkAvailabilityMap = [];
         foreach ($productIds as $productId) {
-            $this->bulkAvailabilityMap[$productId] = $inventoryService->getCurrentStock((int) $productId);
+            $available = $inventoryService->getOnHand((int) $productId);
+            if ($isEditingPosted) {
+                $available += (float) ($lineTotals[$productId] ?? 0);
+            }
+
+            $this->bulkAvailabilityMap[$productId] = $available;
         }
 
-        if ($packSizeIds->isNotEmpty()) {
-            $packInventories = PackInventory::whereIn('product_id', $productIds)
-                ->whereIn('pack_size_id', $packSizeIds)
-                ->get()
-                ->keyBy(fn ($row) => $row->product_id.'-'.$row->pack_size_id);
+        $packLineGroups = collect($this->lines)
+            ->where('sale_mode', DispatchLine::MODE_PACK)
+            ->filter(fn ($line) => ! empty($line['product_id']) && ! empty($line['pack_size_id']))
+            ->groupBy(fn ($line) => $line['product_id'].'-'.$line['pack_size_id']);
 
-            $this->packAvailabilityMap = $packInventories
-                ->mapWithKeys(fn ($row) => [$row->product_id.'-'.$row->pack_size_id => (int) $row->pack_count])
-                ->toArray();
-        } else {
-            $this->packAvailabilityMap = [];
+        $this->packAvailabilityMap = [];
+        foreach ($packLineGroups as $key => $lines) {
+            [$productId, $packSizeId] = array_map('intval', explode('-', $key));
+            $available = $packInventoryService->getPackOnHand($productId, $packSizeId);
+
+            if ($isEditingPosted) {
+                $available += (int) $lines->sum(fn ($line) => (int) ($line['pack_count'] ?? 0));
+            }
+
+            $this->packAvailabilityMap[$key] = $available;
         }
     }
 

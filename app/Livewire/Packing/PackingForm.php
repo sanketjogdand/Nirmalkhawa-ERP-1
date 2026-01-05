@@ -123,7 +123,7 @@ class PackingForm extends Component
                 'remarks' => $data['remarks'] ?? null,
             ], $data['lines'], $inventoryService);
 
-            $this->availableBulk = $inventoryService->getOnHandStock((int) $data['product_id']);
+            $this->availableBulk = $inventoryService->getOnHand((int) $data['product_id']);
             $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
             $this->remarks = null;
             $this->packSizes = PackSize::where('product_id', $data['product_id'])->where('is_active', true)->orderBy('pack_qty')->get()->toArray();
@@ -136,7 +136,7 @@ class PackingForm extends Component
 
     private function loadContext(InventoryService $inventoryService): void
     {
-        $this->availableBulk = $this->product_id ? $inventoryService->getOnHandStock((int) $this->product_id) : 0;
+        $this->availableBulk = $this->product_id ? $inventoryService->getOnHand((int) $this->product_id) : 0;
         $this->packSizes = $this->product_id
             ? PackSize::where('product_id', $this->product_id)->where('is_active', true)->orderBy('pack_qty')->get()->toArray()
             : [];

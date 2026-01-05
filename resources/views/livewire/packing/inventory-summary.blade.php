@@ -50,8 +50,8 @@
                     <tbody>
                         @forelse($sizes as $size)
                             @php
-                                $inventoryRow = $packInventory->get($size->id);
-                                $count = $inventoryRow ? (int) $inventoryRow->pack_count : 0;
+                                $balanceRow = $packBalances->get($product->id.'-'.$size->id);
+                                $count = $balanceRow ? (int) $balanceRow->pack_balance : 0;
                                 $lineTotal = (float) $size->pack_qty * $count;
                                 $totalPacked += $lineTotal;
                             @endphp

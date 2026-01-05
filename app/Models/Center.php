@@ -36,7 +36,7 @@ class Center extends Model
     public function rateCharts(): BelongsToMany
     {
         return $this->belongsToMany(RateChart::class, 'center_rate_chart')
-            ->withPivot(['effective_from', 'effective_to', 'is_active'])
+            ->withPivot(['effective_from', 'effective_to'])
             ->withTimestamps();
     }
 

@@ -2,7 +2,8 @@
 
 namespace App\Livewire\Inventory;
 
-use App\Models\StockLedger;
+use App\Models\StockAdjustment;
+use App\Models\StockAdjustmentLine;
 use App\Services\InventoryService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
@@ -37,8 +38,8 @@ class TransferToMix extends Component
     public function refreshStocks(InventoryService $inventoryService): void
     {
         $this->ensureProductIds($inventoryService);
-        $this->currentCm = $inventoryService->getCurrentStock($this->cmProductId);
-        $this->currentBm = $inventoryService->getCurrentStock($this->bmProductId);
+        $this->currentCm = $inventoryService->getOnHand($this->cmProductId);
+        $this->currentBm = $inventoryService->getOnHand($this->bmProductId);
     }
 
     public function save(InventoryService $inventoryService)
@@ -65,7 +66,6 @@ class TransferToMix extends Component
         }
 
         $this->ensureProductIds($inventoryService);
-        $timestamp = $data['date'].' '.now()->format('H:i:s');
 
         try {
             if ($qtyCm > $this->currentCm) {
@@ -76,25 +76,55 @@ class TransferToMix extends Component
                 throw new RuntimeException('Not enough Buffalo Milk stock available.');
             }
 
-            DB::transaction(function () use ($inventoryService, $qtyCm, $qtyBm, $total, $timestamp, $data) {
+            DB::transaction(function () use ($qtyCm, $qtyBm, $total, $data) {
+                $adjustment = StockAdjustment::create([
+                    'adjustment_date' => $data['date'],
+                    'reason' => 'Transfer to MIX',
+                    'remarks' => $data['remarks'] ?? null,
+                    'created_by' => auth()->id(),
+                ]);
+
+                $lines = [];
+                $now = now();
+
                 if ($qtyCm > 0) {
-                    $inventoryService->postOut($this->cmProductId, $qtyCm, StockLedger::TYPE_TRANSFER, [
-                        'txn_datetime' => $timestamp,
+                    $lines[] = [
+                        'stock_adjustment_id' => $adjustment->id,
+                        'product_id' => $this->cmProductId,
+                        'direction' => StockAdjustmentLine::DIRECTION_OUT,
+                        'qty' => $qtyCm,
+                        'uom' => 'LTR',
                         'remarks' => trim(($data['remarks'] ?? '').' Transfer CM to MIX'),
-                    ]);
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                 }
 
                 if ($qtyBm > 0) {
-                    $inventoryService->postOut($this->bmProductId, $qtyBm, StockLedger::TYPE_TRANSFER, [
-                        'txn_datetime' => $timestamp,
+                    $lines[] = [
+                        'stock_adjustment_id' => $adjustment->id,
+                        'product_id' => $this->bmProductId,
+                        'direction' => StockAdjustmentLine::DIRECTION_OUT,
+                        'qty' => $qtyBm,
+                        'uom' => 'LTR',
                         'remarks' => trim(($data['remarks'] ?? '').' Transfer BM to MIX'),
-                    ]);
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                 }
 
-                $inventoryService->postIn($this->mixProductId, $total, StockLedger::TYPE_TRANSFER, [
-                    'txn_datetime' => $timestamp,
+                $lines[] = [
+                    'stock_adjustment_id' => $adjustment->id,
+                    'product_id' => $this->mixProductId,
+                    'direction' => StockAdjustmentLine::DIRECTION_IN,
+                    'qty' => $total,
+                    'uom' => 'LTR',
                     'remarks' => trim(($data['remarks'] ?? '').' MIX stock received'),
-                ]);
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+
+                StockAdjustmentLine::insert($lines);
             });
 
             $this->refreshStocks($inventoryService);

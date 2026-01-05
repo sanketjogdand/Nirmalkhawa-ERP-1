@@ -6,8 +6,6 @@ use App\Models\Grn;
 use App\Models\GrnLine;
 use App\Models\Product;
 use App\Models\Purchase;
-use App\Models\StockLedger;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +30,6 @@ class GrnService
             ]);
 
             $lines = $this->persistLines($grn, $cleanLines);
-            $this->postLedger($grn, $lines, $inventoryService);
 
             return $grn->load(['supplier', 'purchase', 'lines.product', 'createdBy', 'lockedBy']);
         });
@@ -50,8 +47,6 @@ class GrnService
         }
 
         return DB::transaction(function () use ($grn, $payload, $cleanLines, $inventoryService) {
-            $this->postReversal($grn, $inventoryService, 'GRN updated - reversal');
-
             $grn->update([
                 'supplier_id' => $payload['supplier_id'],
                 'purchase_id' => $payload['purchase_id'] ?? null,
@@ -61,7 +56,6 @@ class GrnService
 
             $grn->lines()->delete();
             $lines = $this->persistLines($grn, $cleanLines);
-            $this->postLedger($grn, $lines, $inventoryService);
 
             return $grn->load(['supplier', 'purchase', 'lines.product', 'createdBy', 'lockedBy']);
         });
@@ -74,7 +68,6 @@ class GrnService
         }
 
         DB::transaction(function () use ($grn, $inventoryService) {
-            $this->postReversal($grn, $inventoryService, 'GRN deleted - reversal');
             $grn->lines()->delete();
             $grn->delete();
         });
@@ -152,56 +145,5 @@ class GrnService
         }
 
         return $created;
-    }
-
-    private function postLedger(Grn $grn, Collection $lines, InventoryService $inventoryService): void
-    {
-        $timestamp = $this->grnTimestamp($grn);
-
-        foreach ($lines as $line) {
-            $inventoryService->postIn(
-                (int) $line->product_id,
-                (float) $line->received_qty,
-                StockLedger::TYPE_GRN_IN,
-                [
-                    'txn_datetime' => $timestamp,
-                    'uom' => $line->uom ?: $line->product?->uom,
-                    'remarks' => $line->remarks,
-                    'reference_type' => GrnLine::class,
-                    'reference_id' => $line->id,
-                ]
-            );
-        }
-    }
-
-    private function postReversal(Grn $grn, InventoryService $inventoryService, string $reason): void
-    {
-        $timestamp = $this->grnTimestamp($grn, true);
-
-        $lines = $grn->lines()->with('product')->get();
-        foreach ($lines as $line) {
-            $inventoryService->postOut(
-                (int) $line->product_id,
-                (float) $line->received_qty,
-                StockLedger::TYPE_GRN_REVERSAL,
-                [
-                    'txn_datetime' => $timestamp,
-                    'uom' => $line->uom ?: $line->product?->uom,
-                    'remarks' => $reason,
-                    'reference_type' => GrnLine::class,
-                    'reference_id' => $line->id,
-                ],
-                true
-            );
-        }
-    }
-
-    private function grnTimestamp(Grn $grn, bool $forReversal = false): Carbon
-    {
-        $baseDate = $grn->grn_date ? $grn->grn_date->toDateString() : now()->toDateString();
-        $timePart = now()->format('H:i:s');
-
-        return Carbon::parse("{$baseDate} {$timePart}")
-            ->addSeconds($forReversal ? 1 : 0);
     }
 }
