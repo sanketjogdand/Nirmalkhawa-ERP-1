@@ -60,7 +60,9 @@ class History extends Component
                 '".addslashes(\App\Models\Packing::class)."' as reference_type,
                 packings.remarks as remarks,
                 packings.created_at as created_at
-            ");
+            ")
+            ->whereNull('packings.deleted_at')
+            ->whereNull('packing_items.deleted_at');
 
         $unpackingQuery = DB::table('unpacking_items')
             ->join('unpackings', 'unpackings.id', '=', 'unpacking_items.unpacking_id')
@@ -80,7 +82,9 @@ class History extends Component
                 '".addslashes(\App\Models\Unpacking::class)."' as reference_type,
                 unpackings.remarks as remarks,
                 unpackings.created_at as created_at
-            ");
+            ")
+            ->whereNull('unpackings.deleted_at')
+            ->whereNull('unpacking_items.deleted_at');
 
         $union = $packingQuery->unionAll($unpackingQuery);
 

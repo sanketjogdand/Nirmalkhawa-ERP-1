@@ -476,22 +476,22 @@
                 </flux:navlist.group>
             @endcanany
 
-            @canany(['packsize.view', 'packing.create', 'unpacking.create', 'packinventory.view'])
+            @canany(['packsize.view', 'packing.view', 'unpacking.view', 'packinventory.view'])
                 <flux:navlist.group expandable :heading="__('Packing')" class="lg:grid" :expanded="request()->routeIs([
                     'pack-sizes',
-                    'packing',
-                    'unpacking',
+                    'packings.*',
+                    'unpackings.*',
                     'pack-inventory',
                     'pack-history',
                 ])">
                     @can('packsize.view')
                         <flux:navlist.item :href="route('pack-sizes')" :current="request()->routeIs('pack-sizes')" wire:navigate>{{ __('Pack Sizes') }}</flux:navlist.item>
                     @endcan
-                    @can('packing.create')
-                        <flux:navlist.item :href="route('packing')" :current="request()->routeIs('packing')" wire:navigate>{{ __('Packing') }}</flux:navlist.item>
+                    @can('packing.view')
+                        <flux:navlist.item :href="route('packings.view')" :current="request()->routeIs('packings.*')" wire:navigate>{{ __('Packing') }}</flux:navlist.item>
                     @endcan
-                    @can('unpacking.create')
-                        <flux:navlist.item :href="route('unpacking')" :current="request()->routeIs('unpacking')" wire:navigate>{{ __('Unpacking') }}</flux:navlist.item>
+                    @can('unpacking.view')
+                        <flux:navlist.item :href="route('unpackings.view')" :current="request()->routeIs('unpackings.*')" wire:navigate>{{ __('Unpacking') }}</flux:navlist.item>
                     @endcan
                     @can('packinventory.view')
                         <flux:navlist.item :href="route('pack-inventory')" :current="request()->routeIs('pack-inventory')" wire:navigate>{{ __('Pack Inventory') }}</flux:navlist.item>

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Packing;
 
+use App\Models\Packing;
 use App\Models\PackSize;
 use App\Models\Product;
 use App\Services\InventoryService;
@@ -15,6 +16,11 @@ class PackingForm extends Component
     use AuthorizesRequests;
 
     public $title = 'Packing';
+    public ?int $packingId = null;
+    public bool $isLocked = false;
+    public bool $isReadOnly = false;
+    public ?int $originalProductId = null;
+    public float $originalTotalBulkQty = 0.0;
     public $date;
     public $product_id = '';
     public $lines = [];
@@ -23,16 +29,42 @@ class PackingForm extends Component
     public $products;
     public $packSizes = [];
 
-    public function mount(InventoryService $inventoryService): void
+    public function mount(InventoryService $inventoryService, $packing = null): void
     {
-        $this->authorize('packing.create');
         $this->products = Product::where('can_stock', true)
             ->where('is_packing', false)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
-        $this->date = now()->toDateString();
-        $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
+        $this->isReadOnly = request()->routeIs('packings.show');
+        $this->packingId = $packing ? (int) $packing : null;
+
+        if ($this->packingId) {
+            $record = Packing::with(['items', 'product'])->findOrFail($this->packingId);
+            $this->authorize($this->isReadOnly ? 'packing.view' : 'packing.update');
+
+            $this->packingId = $record->id;
+            $this->isLocked = (bool) $record->is_locked;
+            $this->originalProductId = $record->product_id;
+            $this->originalTotalBulkQty = (float) $record->total_bulk_qty;
+            $this->date = $record->date?->toDateString();
+            $this->product_id = $record->product_id;
+            $this->remarks = $record->remarks;
+            $this->lines = $record->items->map(function ($item) {
+                return [
+                    'pack_size_id' => $item->pack_size_id,
+                    'pack_count' => (int) $item->pack_count,
+                ];
+            })->toArray();
+
+            if ($record->product && ! $this->products->contains('id', $record->product_id)) {
+                $this->products->push($record->product);
+            }
+        } else {
+            $this->authorize('packing.create');
+            $this->date = now()->toDateString();
+            $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
+        }
 
         if ($this->product_id) {
             $this->loadContext($inventoryService);
@@ -41,6 +73,10 @@ class PackingForm extends Component
 
     public function updatedProductId(InventoryService $inventoryService): void
     {
+        if (! $this->isEditable()) {
+            return;
+        }
+
         $this->loadContext($inventoryService);
         $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
     }
@@ -52,11 +88,19 @@ class PackingForm extends Component
 
     public function addLine(): void
     {
+        if (! $this->isEditable()) {
+            return;
+        }
+
         $this->lines[] = ['pack_size_id' => '', 'pack_count' => null];
     }
 
     public function removeLine(int $index): void
     {
+        if (! $this->isEditable()) {
+            return;
+        }
+
         unset($this->lines[$index]);
         $this->lines = array_values($this->lines);
         $this->validateRemaining();
@@ -87,7 +131,12 @@ class PackingForm extends Component
 
     public function save(PackingService $packingService, InventoryService $inventoryService)
     {
-        $this->authorize('packing.create');
+        $this->authorize($this->packingId ? 'packing.update' : 'packing.create');
+
+        if (! $this->isEditable()) {
+            $this->addError('form', 'Packing is locked or read-only.');
+            return;
+        }
 
         $data = $this->validate([
             'date' => ['required', 'date'],
@@ -117,6 +166,18 @@ class PackingForm extends Component
         }
 
         try {
+            if ($this->packingId) {
+                $packing = Packing::findOrFail($this->packingId);
+                $packingService->updatePacking($packing, [
+                    'date' => $data['date'],
+                    'product_id' => (int) $data['product_id'],
+                    'remarks' => $data['remarks'] ?? null,
+                ], $data['lines'], $inventoryService);
+
+                session()->flash('success', 'Packing updated.');
+                return redirect()->route('packings.view');
+            }
+
             $packingService->pack([
                 'date' => $data['date'],
                 'product_id' => (int) $data['product_id'],
@@ -137,10 +198,30 @@ class PackingForm extends Component
     private function loadContext(InventoryService $inventoryService): void
     {
         $this->availableBulk = $this->product_id ? $inventoryService->getOnHand((int) $this->product_id) : 0;
+
+        if ($this->product_id && $this->originalProductId && (int) $this->product_id === $this->originalProductId) {
+            $this->availableBulk += $this->originalTotalBulkQty;
+        }
+
+        $lineSizeIds = collect($this->lines)->pluck('pack_size_id')->filter()->unique();
+
         $this->packSizes = $this->product_id
-            ? PackSize::where('product_id', $this->product_id)->where('is_active', true)->orderBy('pack_qty')->get()->toArray()
+            ? PackSize::where('product_id', $this->product_id)
+                ->when($lineSizeIds->isNotEmpty(), function ($query) use ($lineSizeIds) {
+                    $query->where(function ($q) use ($lineSizeIds) {
+                        $q->where('is_active', true)->orWhereIn('id', $lineSizeIds);
+                    });
+                }, fn ($query) => $query->where('is_active', true))
+                ->orderBy('pack_qty')
+                ->get()
+                ->toArray()
             : [];
         $this->validateRemaining();
+    }
+
+    private function isEditable(): bool
+    {
+        return ! $this->isLocked && ! $this->isReadOnly;
     }
 
     private function validateRemaining(): void

@@ -29,6 +29,8 @@ SELECT
     p.remarks
 FROM packing_items pi
 JOIN packings p ON p.id = pi.packing_id
+WHERE p.deleted_at IS NULL
+  AND pi.deleted_at IS NULL
 UNION ALL
 SELECT
     u.date AS txn_date,
@@ -45,6 +47,8 @@ SELECT
     u.remarks
 FROM unpacking_items ui
 JOIN unpackings u ON u.id = ui.unpacking_id
+WHERE u.deleted_at IS NULL
+  AND ui.deleted_at IS NULL
 UNION ALL
 SELECT
     d.dispatch_date AS txn_date,

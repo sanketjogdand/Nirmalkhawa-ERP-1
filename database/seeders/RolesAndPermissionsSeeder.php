@@ -91,10 +91,18 @@ class RolesAndPermissionsSeeder extends Seeder
             'packsize.update',
             'packsize.delete',
             'packsize.update_bom',
+            'packing.view',
             'packing.create',
+            'packing.update',
+            'packing.delete',
             'packing.lock',
             'packing.unlock',
+            'unpacking.view',
             'unpacking.create',
+            'unpacking.update',
+            'unpacking.delete',
+            'unpacking.lock',
+            'unpacking.unlock',
             'packinventory.view',
             'customer.view',
             'customer.create',
@@ -219,7 +227,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'materialconsumption.update',
             'materialconsumption.delete',
             'materialconsumption.lock',
+            'packing.view',
+            'packing.create',
+            'packing.update',
+            'packing.delete',
             'packing.lock',
+            'unpacking.view',
+            'unpacking.create',
+            'unpacking.update',
+            'unpacking.delete',
+            'unpacking.lock',
             'grn.view',
             'grn.create',
             'grn.update',
@@ -256,8 +273,12 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $storeKeeperRole = Role::firstOrCreate(['name' => 'Storekeeper']);
         $storeKeeperRole->syncPermissions([
+            'packing.view',
             'packing.create',
+            'packing.update',
+            'unpacking.view',
             'unpacking.create',
+            'unpacking.update',
             'packinventory.view',
             'packsize.view',
             'dispatch.view',
@@ -276,6 +297,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'stockadjustment.view',
             'stockadjustment.create',
             'stockadjustment.update',
+        ]);
+
+        $operatorRole = Role::firstOrCreate(['name' => 'Operator']);
+        $operatorRole->syncPermissions([
+            'packing.view',
+            'packing.create',
+            'packing.update',
+            'unpacking.view',
+            'unpacking.create',
+            'unpacking.update',
         ]);
 
         $accountantRole->givePermissionTo([

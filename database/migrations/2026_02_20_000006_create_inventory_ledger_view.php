@@ -56,6 +56,7 @@ SELECT
     u.created_at AS created_at,
     u.remarks
 FROM unpackings u
+WHERE u.deleted_at IS NULL
 UNION ALL
 SELECT
     sa.adjustment_date AS txn_date,
@@ -140,6 +141,7 @@ SELECT
     p.remarks
 FROM packings p
 LEFT JOIN products prod ON prod.id = p.product_id
+WHERE p.deleted_at IS NULL
 UNION ALL
 SELECT
     p.date AS txn_date,
@@ -155,6 +157,7 @@ SELECT
 FROM packing_material_usages pmu
 JOIN packings p ON p.id = pmu.packing_id
 WHERE pmu.deleted_at IS NULL
+  AND p.deleted_at IS NULL
 UNION ALL
 SELECT
     d.dispatch_date AS txn_date,

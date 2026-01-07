@@ -2,12 +2,14 @@
 
 namespace App\Livewire\Packing;
 
-use App\Models\PackInventory;
 use App\Models\PackSize;
 use App\Models\Product;
+use App\Models\Unpacking;
 use App\Services\InventoryService;
+use App\Services\PackInventoryService;
 use App\Services\PackingService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use RuntimeException;
 
@@ -16,6 +18,11 @@ class UnpackingForm extends Component
     use AuthorizesRequests;
 
     public $title = 'Unpacking';
+    public ?int $unpackingId = null;
+    public bool $isLocked = false;
+    public bool $isReadOnly = false;
+    public ?int $originalProductId = null;
+    public array $originalLineCounts = [];
     public $date;
     public $product_id = '';
     public $lines = [];
@@ -24,20 +31,58 @@ class UnpackingForm extends Component
     public $packSizes = [];
     public $packInventory = [];
 
-    public function mount(): void
+    public function mount($unpacking = null): void
     {
-        $this->authorize('unpacking.create');
         $this->products = Product::where('can_stock', true)
             ->where('is_packing', false)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
-        $this->date = now()->toDateString();
-        $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
+        $this->isReadOnly = request()->routeIs('unpackings.show');
+        $this->unpackingId = $unpacking ? (int) $unpacking : null;
+
+        if ($this->unpackingId) {
+            $record = Unpacking::with(['items', 'product'])->findOrFail($this->unpackingId);
+            $this->authorize($this->isReadOnly ? 'unpacking.view' : 'unpacking.update');
+
+            $this->unpackingId = $record->id;
+            $this->isLocked = (bool) $record->is_locked;
+            $this->originalProductId = $record->product_id;
+            $this->date = $record->date?->toDateString();
+            $this->product_id = $record->product_id;
+            $this->remarks = $record->remarks;
+            $this->lines = $record->items->map(function ($item) {
+                return [
+                    'pack_size_id' => $item->pack_size_id,
+                    'pack_count' => (int) $item->pack_count,
+                ];
+            })->toArray();
+
+            $this->originalLineCounts = $record->items
+                ->groupBy('pack_size_id')
+                ->map(fn ($items) => $items->sum('pack_count'))
+                ->toArray();
+
+            if ($record->product && ! $this->products->contains('id', $record->product_id)) {
+                $this->products->push($record->product);
+            }
+        } else {
+            $this->authorize('unpacking.create');
+            $this->date = now()->toDateString();
+            $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
+        }
+
+        if ($this->product_id) {
+            $this->loadPackContext();
+        }
     }
 
     public function updatedProductId(): void
     {
+        if (! $this->isEditable()) {
+            return;
+        }
+
         $this->loadPackContext();
         $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
     }
@@ -49,11 +94,19 @@ class UnpackingForm extends Component
 
     public function addLine(): void
     {
+        if (! $this->isEditable()) {
+            return;
+        }
+
         $this->lines[] = ['pack_size_id' => '', 'pack_count' => null];
     }
 
     public function removeLine(int $index): void
     {
+        if (! $this->isEditable()) {
+            return;
+        }
+
         unset($this->lines[$index]);
         $this->lines = array_values($this->lines);
         $this->validatePackAvailability();
@@ -82,9 +135,14 @@ class UnpackingForm extends Component
         return (int) ($this->packInventory[$packSizeId] ?? 0);
     }
 
-    public function save(PackingService $packingService, InventoryService $inventoryService)
+    public function save(PackingService $packingService, InventoryService $inventoryService, PackInventoryService $packInventoryService)
     {
-        $this->authorize('unpacking.create');
+        $this->authorize($this->unpackingId ? 'unpacking.update' : 'unpacking.create');
+
+        if (! $this->isEditable()) {
+            $this->addError('form', 'Unpacking is locked or read-only.');
+            return;
+        }
 
         $data = $this->validate([
             'date' => ['required', 'date'],
@@ -117,11 +175,23 @@ class UnpackingForm extends Component
         }
 
         try {
+            if ($this->unpackingId) {
+                $unpacking = Unpacking::findOrFail($this->unpackingId);
+                $packingService->updateUnpacking($unpacking, [
+                    'date' => $data['date'],
+                    'product_id' => (int) $data['product_id'],
+                    'remarks' => $data['remarks'] ?? null,
+                ], $data['lines'], $packInventoryService);
+
+                session()->flash('success', 'Unpacking updated.');
+                return redirect()->route('unpackings.view');
+            }
+
             $packingService->unpack([
                 'date' => $data['date'],
                 'product_id' => (int) $data['product_id'],
                 'remarks' => $data['remarks'] ?? null,
-            ], $data['lines'], $inventoryService);
+            ], $data['lines'], $inventoryService, $packInventoryService);
 
             $this->loadPackContext();
             $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
@@ -136,14 +206,25 @@ class UnpackingForm extends Component
     private function loadPackContext(): void
     {
         $inventoryMap = $this->product_id
-            ? PackInventory::where('product_id', $this->product_id)->pluck('pack_count', 'pack_size_id')->toArray()
+            ? DB::table('pack_operations_view')
+                ->where('product_id', $this->product_id)
+                ->selectRaw('pack_size_id, COALESCE(SUM(pack_count_in - pack_count_out), 0) as balance')
+                ->groupBy('pack_size_id')
+                ->pluck('balance', 'pack_size_id')
+                ->toArray()
             : [];
 
+        $lineSizeIds = collect($this->lines)->pluck('pack_size_id')->filter()->unique();
+
         $sizeQuery = PackSize::query()->where('product_id', $this->product_id);
-        if ($inventoryMap) {
-            $sizeQuery->where(function ($q) use ($inventoryMap) {
-                $q->where('is_active', true)
-                    ->orWhereIn('id', array_keys($inventoryMap));
+        if ($inventoryMap || $lineSizeIds->isNotEmpty()) {
+            $sizeQuery->where(function ($q) use ($inventoryMap, $lineSizeIds) {
+                $q->where('is_active', true);
+
+                $extraIds = array_merge(array_keys($inventoryMap), $lineSizeIds->all());
+                if (! empty($extraIds)) {
+                    $q->orWhereIn('id', $extraIds);
+                }
             });
         } else {
             $sizeQuery->where('is_active', true);
@@ -154,6 +235,12 @@ class UnpackingForm extends Component
             : [];
 
         $this->packInventory = $inventoryMap;
+
+        if ($this->product_id && $this->originalProductId && (int) $this->product_id === $this->originalProductId) {
+            foreach ($this->originalLineCounts as $packSizeId => $count) {
+                $this->packInventory[$packSizeId] = ($this->packInventory[$packSizeId] ?? 0) + $count;
+            }
+        }
 
         $this->validatePackAvailability();
     }
@@ -173,6 +260,11 @@ class UnpackingForm extends Component
         }
 
         $this->resetErrorBag('lines');
+    }
+
+    private function isEditable(): bool
+    {
+        return ! $this->isLocked && ! $this->isReadOnly;
     }
 
     public function render()

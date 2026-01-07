@@ -32,7 +32,9 @@ use App\Livewire\Packing\History as PackHistory;
 use App\Livewire\Packing\InventorySummary as PackInventory;
 use App\Livewire\Packing\PackSizes;
 use App\Livewire\Packing\PackingForm;
+use App\Livewire\Packing\PackingView;
 use App\Livewire\Packing\UnpackingForm;
+use App\Livewire\Packing\UnpackingView;
 use App\Livewire\Production\Form as ProductionForm;
 use App\Livewire\Production\Show as ProductionShow;
 use App\Livewire\Production\View as ProductionView;
@@ -264,13 +266,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:packsize.view')
         ->name('pack-sizes');
 
-    Route::get('packing', PackingForm::class)
+    Route::get('packings', PackingView::class)
+        ->middleware('permission:packing.view')
+        ->name('packings.view');
+    Route::get('packings/create', PackingForm::class)
         ->middleware('permission:packing.create')
-        ->name('packing');
+        ->name('packings.create');
+    Route::get('packings/{packing}', PackingForm::class)
+        ->middleware('permission:packing.view')
+        ->whereNumber('packing')
+        ->name('packings.show');
+    Route::get('packings/{packing}/edit', PackingForm::class)
+        ->middleware('permission:packing.update')
+        ->whereNumber('packing')
+        ->name('packings.edit');
 
-    Route::get('unpacking', UnpackingForm::class)
+    Route::get('unpackings', UnpackingView::class)
+        ->middleware('permission:unpacking.view')
+        ->name('unpackings.view');
+    Route::get('unpackings/create', UnpackingForm::class)
         ->middleware('permission:unpacking.create')
-        ->name('unpacking');
+        ->name('unpackings.create');
+    Route::get('unpackings/{unpacking}', UnpackingForm::class)
+        ->middleware('permission:unpacking.view')
+        ->whereNumber('unpacking')
+        ->name('unpackings.show');
+    Route::get('unpackings/{unpacking}/edit', UnpackingForm::class)
+        ->middleware('permission:unpacking.update')
+        ->whereNumber('unpacking')
+        ->name('unpackings.edit');
 
     Route::get('pack-inventory', PackInventory::class)
         ->middleware('permission:packinventory.view')
