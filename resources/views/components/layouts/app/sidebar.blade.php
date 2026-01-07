@@ -426,6 +426,26 @@
                     @endcan
                 </flux:navlist.group>
             @endif
+
+            @if(auth()->user()->can('employee.view') || auth()->user()->can('attendance.view') || auth()->user()->can('incentive.view') || auth()->user()->can('employee_payment.view') || auth()->user()->can('payroll.view'))
+                <flux:navlist.group expandable :heading="__('Employees')" class="lg:grid" :expanded="request()->routeIs(['employees.*','employee-attendance.*','employee-incentives.*','employee-payments.*','employee-payrolls.*','employee-salary-rates.*'])">
+                    @can('employee.view')
+                        <flux:navlist.item :href="route('employees.view')" :current="request()->routeIs('employees.*')" wire:navigate>{{ __('Employees') }}</flux:navlist.item>
+                    @endcan
+                    @can('attendance.view')
+                        <flux:navlist.item :href="route('employee-attendance.view')" :current="request()->routeIs('employee-attendance.*')" wire:navigate>{{ __('Attendance') }}</flux:navlist.item>
+                    @endcan
+                    @can('incentive.view')
+                        <flux:navlist.item :href="route('employee-incentives.view')" :current="request()->routeIs('employee-incentives.*')" wire:navigate>{{ __('Incentives') }}</flux:navlist.item>
+                    @endcan
+                    @can('employee_payment.view')
+                        <flux:navlist.item :href="route('employee-payments.view')" :current="request()->routeIs('employee-payments.*')" wire:navigate>{{ __('Payments') }}</flux:navlist.item>
+                    @endcan
+                    @can('payroll.view')
+                        <flux:navlist.item :href="route('employee-payrolls.view')" :current="request()->routeIs('employee-payrolls.*')" wire:navigate>{{ __('Payroll') }}</flux:navlist.item>
+                    @endcan
+                </flux:navlist.group>
+            @endif
             @canany(['ratechart.view', 'commissionpolicy.view'])
                 <flux:navlist.group expandable :heading="__('Rates & Commission')" class="lg:grid" :expanded="request()->routeIs(['rate-charts.*','commission-*'])">
                     @can('ratechart.view')

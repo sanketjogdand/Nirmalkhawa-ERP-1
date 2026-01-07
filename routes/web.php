@@ -55,6 +55,18 @@ use App\Livewire\Purchase\View as PurchaseView;
 use App\Livewire\Grn\Form as GrnForm;
 use App\Livewire\Grn\Show as GrnShow;
 use App\Livewire\Grn\View as GrnView;
+use App\Livewire\Employee\Form as EmployeeForm;
+use App\Livewire\Employee\View as EmployeeView;
+use App\Livewire\EmployeeAttendance\Form as EmployeeAttendanceForm;
+use App\Livewire\EmployeeAttendance\View as EmployeeAttendanceView;
+use App\Livewire\EmployeeIncentive\Form as EmployeeIncentiveForm;
+use App\Livewire\EmployeeIncentive\View as EmployeeIncentiveView;
+use App\Livewire\EmployeePayment\Form as EmployeePaymentForm;
+use App\Livewire\EmployeePayment\View as EmployeePaymentView;
+use App\Livewire\EmployeePayroll\Form as EmployeePayrollForm;
+use App\Livewire\EmployeePayroll\View as EmployeePayrollView;
+use App\Livewire\EmployeeSalaryRate\View as EmployeeSalaryRateView;
+use App\Livewire\EmploymentPeriod\View as EmploymentPeriodView;
 use App\Livewire\RateChart\Calculator as RateChartCalculator;
 use App\Livewire\RateChart\Form as RateChartForm;
 use App\Livewire\RateChart\Show as RateChartShow;
@@ -169,6 +181,69 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:centerpayment.update')
         ->whereNumber('payment')
         ->name('center-payments.edit');
+
+    Route::middleware('permission:employee.view')->group(function () {
+        Route::get('employees', EmployeeView::class)->name('employees.view');
+    });
+    Route::get('employees/create', EmployeeForm::class)
+        ->middleware('permission:employee.create')
+        ->name('employees.create');
+    Route::get('employees/{employee}/edit', EmployeeForm::class)
+        ->middleware('permission:employee.update')
+        ->whereNumber('employee')
+        ->name('employees.edit');
+    Route::get('employees/{employee}/employment-periods', EmploymentPeriodView::class)
+        ->middleware('permission:employment_period.manage')
+        ->whereNumber('employee')
+        ->name('employees.employment-periods');
+    Route::get('employees/{employee}/salary-rates', EmployeeSalaryRateView::class)
+        ->middleware('permission:salary_rate.view')
+        ->whereNumber('employee')
+        ->name('employee-salary-rates.view');
+
+    Route::middleware('permission:attendance.view')->group(function () {
+        Route::get('employee-attendance', EmployeeAttendanceView::class)->name('employee-attendance.view');
+    });
+    Route::get('employee-attendance/create', EmployeeAttendanceForm::class)
+        ->middleware('permission:attendance.create')
+        ->name('employee-attendance.create');
+    Route::get('employee-attendance/{attendance}/edit', EmployeeAttendanceForm::class)
+        ->middleware('permission:attendance.update')
+        ->whereNumber('attendance')
+        ->name('employee-attendance.edit');
+
+    Route::middleware('permission:incentive.view')->group(function () {
+        Route::get('employee-incentives', EmployeeIncentiveView::class)->name('employee-incentives.view');
+    });
+    Route::get('employee-incentives/create', EmployeeIncentiveForm::class)
+        ->middleware('permission:incentive.create')
+        ->name('employee-incentives.create');
+    Route::get('employee-incentives/{incentive}/edit', EmployeeIncentiveForm::class)
+        ->middleware('permission:incentive.update')
+        ->whereNumber('incentive')
+        ->name('employee-incentives.edit');
+
+    Route::middleware('permission:employee_payment.view')->group(function () {
+        Route::get('employee-payments', EmployeePaymentView::class)->name('employee-payments.view');
+    });
+    Route::get('employee-payments/create', EmployeePaymentForm::class)
+        ->middleware('permission:employee_payment.create')
+        ->name('employee-payments.create');
+    Route::get('employee-payments/{payment}/edit', EmployeePaymentForm::class)
+        ->middleware('permission:employee_payment.update')
+        ->whereNumber('payment')
+        ->name('employee-payments.edit');
+
+    Route::middleware('permission:payroll.view')->group(function () {
+        Route::get('employee-payrolls', EmployeePayrollView::class)->name('employee-payrolls.view');
+    });
+    Route::get('employee-payrolls/create', EmployeePayrollForm::class)
+        ->middleware('permission:payroll.create')
+        ->name('employee-payrolls.create');
+    Route::get('employee-payrolls/{payroll}/edit', EmployeePayrollForm::class)
+        ->middleware('permission:payroll.update')
+        ->whereNumber('payroll')
+        ->name('employee-payrolls.edit');
 
     Route::get('settlement-templates', SettlementTemplateView::class)
         ->middleware('permission:settlementtemplate.manage')
