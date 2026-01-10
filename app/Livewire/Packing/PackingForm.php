@@ -81,6 +81,15 @@ class PackingForm extends Component
         $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
     }
 
+    public function updatedDate(InventoryService $inventoryService): void
+    {
+        if (! $this->isEditable() || ! $this->product_id) {
+            return;
+        }
+
+        $this->loadContext($inventoryService);
+    }
+
     public function updatedLines(): void
     {
         $this->validateRemaining();
@@ -161,7 +170,7 @@ class PackingForm extends Component
         }
 
         if ($this->remainingBulk < 0) {
-            $this->addError('lines', 'Remaining bulk cannot be negative.');
+            $this->addError('lines', $this->formatStockShortageMessage());
             return;
         }
 
@@ -184,7 +193,7 @@ class PackingForm extends Component
                 'remarks' => $data['remarks'] ?? null,
             ], $data['lines'], $inventoryService);
 
-            $this->availableBulk = $inventoryService->getOnHand((int) $data['product_id']);
+            $this->availableBulk = $inventoryService->getOnHandAsOf((int) $data['product_id'], $data['date']);
             $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
             $this->remarks = null;
             $this->packSizes = PackSize::where('product_id', $data['product_id'])->where('is_active', true)->orderBy('pack_qty')->get()->toArray();
@@ -197,7 +206,8 @@ class PackingForm extends Component
 
     private function loadContext(InventoryService $inventoryService): void
     {
-        $this->availableBulk = $this->product_id ? $inventoryService->getOnHand((int) $this->product_id) : 0;
+        $asOfDate = $this->date ?: now()->toDateString();
+        $this->availableBulk = $this->product_id ? $inventoryService->getOnHandAsOf((int) $this->product_id, $asOfDate) : 0;
 
         if ($this->product_id && $this->originalProductId && (int) $this->product_id === $this->originalProductId) {
             $this->availableBulk += $this->originalTotalBulkQty;
@@ -227,10 +237,27 @@ class PackingForm extends Component
     private function validateRemaining(): void
     {
         if ($this->remainingBulk < 0) {
-            $this->addError('lines', 'Remaining bulk cannot be negative.');
+            $this->addError('lines', $this->formatStockShortageMessage());
         } else {
             $this->resetErrorBag('lines');
         }
+    }
+
+    private function formatStockShortageMessage(): string
+    {
+        $product = $this->products?->firstWhere('id', (int) $this->product_id);
+        $productName = $product?->name ?? ('Product ID '.$this->product_id);
+        $required = (float) $this->packTotalQuantity;
+        $available = (float) $this->availableBulk;
+        $shortage = round($required - $available, 3);
+
+        return sprintf(
+            'Insufficient stock for %s. Available %s, required %s. Short by %s.',
+            $productName,
+            number_format($available, 3),
+            number_format($required, 3),
+            number_format($shortage, 3)
+        );
     }
 
     public function render()

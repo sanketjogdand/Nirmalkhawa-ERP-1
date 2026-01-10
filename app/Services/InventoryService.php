@@ -34,6 +34,11 @@ class InventoryService
 
     public function getStockAsOf(int $productId, $asOf): float
     {
+        return $this->getOnHandAsOf($productId, $asOf);
+    }
+
+    public function getOnHandAsOf(int $productId, $asOf): float
+    {
         $asOfDate = $asOf ? Carbon::parse($asOf)->toDateString() : now()->toDateString();
 
         return (float) DB::table('inventory_ledger_view')

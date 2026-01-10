@@ -159,32 +159,24 @@ class StockAdjustmentService
         $adjustmentDate = null,
         array $existingTotals = []
     ): void {
-        $totals = [];
         foreach ($lines as $line) {
-            $productId = (int) $line['product_id'];
-            $totals[$productId] = $totals[$productId] ?? ['in' => 0.0, 'out' => 0.0];
-
-            if ($line['direction'] === StockAdjustmentLine::DIRECTION_IN) {
-                $totals[$productId]['in'] += (float) $line['qty'];
-            } else {
-                $totals[$productId]['out'] += (float) $line['qty'];
+            if ($line['direction'] !== StockAdjustmentLine::DIRECTION_OUT) {
+                continue;
             }
-        }
 
-        foreach ($totals as $productId => $byDirection) {
-            $baseAvailable = $adjustmentDate
-                ? $inventoryService->getStockAsOf((int) $productId, $adjustmentDate)
-                : $inventoryService->getOnHand((int) $productId);
+            $productId = (int) $line['product_id'];
+            $required = (float) $line['qty'];
+            $existingOut = (float) ($existingTotals[$productId]['out'] ?? 0);
+            $deltaOut = $required - $existingOut;
 
-            $existing = $existingTotals[$productId] ?? ['in' => 0.0, 'out' => 0.0];
-            $availableBeforeChange = $baseAvailable - ($existing['in'] ?? 0) + ($existing['out'] ?? 0);
-            $effectiveAvailable = $availableBeforeChange + ($byDirection['in'] ?? 0);
+            if ($deltaOut <= 0) {
+                continue;
+            }
 
-            if (($byDirection['out'] ?? 0) > $effectiveAvailable) {
-                $productName = $lines->firstWhere('product_id', $productId)['product']->name ?? ('Product ID '.$productId);
-                $shortage = round(($byDirection['out'] ?? 0) - $effectiveAvailable, 3);
-                $availableText = number_format($effectiveAvailable, 3);
-                throw new RuntimeException("Insufficient stock for {$productName}. Available {$availableText}, short by {$shortage}.");
+            $available = $inventoryService->getOnHandAsOf($productId, $adjustmentDate);
+            if ($deltaOut > $available) {
+                $productName = $line['product']->name ?? ('Product ID '.$productId);
+                throw new RuntimeException($this->formatStockShortageMessage($productName, $available, $deltaOut));
             }
         }
     }
@@ -231,5 +223,18 @@ class StockAdjustmentService
         $desiredDate = $targetDate ? Carbon::parse($targetDate) : $currentDate;
 
         return $currentDate->lessThanOrEqualTo($desiredDate);
+    }
+
+    private function formatStockShortageMessage(string $productName, float $available, float $required): string
+    {
+        $shortage = round($required - $available, 3);
+
+        return sprintf(
+            'Insufficient stock for %s. Available %s, required %s. Short by %s.',
+            $productName,
+            number_format($available, 3),
+            number_format($required, 3),
+            number_format($shortage, 3)
+        );
     }
 }

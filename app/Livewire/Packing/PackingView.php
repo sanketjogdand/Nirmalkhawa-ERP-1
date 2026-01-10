@@ -4,6 +4,8 @@ namespace App\Livewire\Packing;
 
 use App\Models\Packing;
 use App\Models\Product;
+use App\Services\InventoryService;
+use App\Services\PackingService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -105,7 +107,7 @@ class PackingView extends Component
         $this->showLockModal = true;
     }
 
-    public function lockConfirmed(): void
+    public function lockConfirmed(PackingService $packingService, InventoryService $inventoryService): void
     {
         $this->authorize('packing.lock');
 
@@ -114,15 +116,22 @@ class PackingView extends Component
             return;
         }
 
-        DB::transaction(function () {
-            Packing::whereIn('id', $this->pendingLockIds)
-                ->where('is_locked', false)
-                ->update([
-                    'is_locked' => true,
-                    'locked_by' => auth()->id(),
-                    'locked_at' => now(),
-                ]);
-        });
+        try {
+            DB::transaction(function () use ($packingService, $inventoryService) {
+                foreach ($this->pendingLockIds as $id) {
+                    $record = Packing::findOrFail($id);
+                    if ($record->is_locked) {
+                        continue;
+                    }
+
+                    $packingService->lock($record, auth()->id(), $inventoryService);
+                }
+            });
+        } catch (RuntimeException $e) {
+            session()->flash('danger', $e->getMessage());
+            $this->showLockModal = false;
+            return;
+        }
 
         $this->showLockModal = false;
         $this->pendingLockIds = [];

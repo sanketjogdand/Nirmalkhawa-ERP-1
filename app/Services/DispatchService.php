@@ -239,29 +239,41 @@ class DispatchService
     private function ensureStockAvailable(Dispatch $dispatch, InventoryService $inventoryService, PackInventoryService $packInventoryService): void
     {
         $dispatch->loadMissing('lines.product');
+        $dispatchDate = $dispatch->dispatch_date ? $dispatch->dispatch_date->toDateString() : now()->toDateString();
 
         foreach ($dispatch->lines as $line) {
             if ($line->sale_mode === DispatchLine::MODE_BULK) {
                 $required = (float) ($line->qty_bulk ?? 0);
-                $available = $inventoryService->getOnHand((int) $line->product_id);
+                $available = $inventoryService->getOnHandAsOf((int) $line->product_id, $dispatchDate);
                 if ($dispatch->status === Dispatch::STATUS_POSTED) {
                     $available += $required;
                 }
 
                 if ($required > $available) {
                     $name = $line->product->name ?? ('Product ID '.$line->product_id);
-                    throw new RuntimeException("Insufficient bulk stock for {$name}. Need {$required}, available {$available}.");
+                    $shortage = round($required - $available, 3);
+                    throw new RuntimeException(
+                        "Insufficient stock for {$name}. Available ".number_format($available, 3)
+                        .", required ".number_format($required, 3).". Short by ".number_format($shortage, 3).'.'
+                    );
                 }
             } else {
                 $required = (int) ($line->pack_count ?? 0);
-                $available = $packInventoryService->getPackOnHand((int) $line->product_id, (int) $line->pack_size_id);
+                $available = $packInventoryService->getPackOnHandAsOf(
+                    (int) $line->product_id,
+                    (int) $line->pack_size_id,
+                    $dispatchDate
+                );
                 if ($dispatch->status === Dispatch::STATUS_POSTED) {
                     $available += $required;
                 }
 
                 if ($required > $available) {
                     $name = $line->product->name ?? ('Product ID '.$line->product_id);
-                    throw new RuntimeException("Insufficient pack stock for {$name}. Need {$required}, available {$available}.");
+                    $shortage = $required - $available;
+                    throw new RuntimeException(
+                        "Insufficient packs for {$name}. Available {$available}, required {$required}. Short by {$shortage}."
+                    );
                 }
             }
         }

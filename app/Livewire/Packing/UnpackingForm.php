@@ -87,6 +87,15 @@ class UnpackingForm extends Component
         $this->lines = [['pack_size_id' => '', 'pack_count' => null]];
     }
 
+    public function updatedDate(): void
+    {
+        if (! $this->isEditable() || ! $this->product_id) {
+            return;
+        }
+
+        $this->loadPackContext();
+    }
+
     public function updatedLines(): void
     {
         $this->validatePackAvailability();
@@ -169,7 +178,11 @@ class UnpackingForm extends Component
         foreach ($data['lines'] as $line) {
             $available = $this->getAvailablePackCount((int) $line['pack_size_id']);
             if ((int) $line['pack_count'] > $available) {
-                $this->addError('lines', 'Not enough packs available for the selected size.');
+                $this->addError('lines', $this->formatPackShortageMessage(
+                    (int) $line['pack_size_id'],
+                    $available,
+                    (int) $line['pack_count']
+                ));
                 return;
             }
         }
@@ -205,9 +218,11 @@ class UnpackingForm extends Component
 
     private function loadPackContext(): void
     {
+        $asOfDate = $this->date ?: now()->toDateString();
         $inventoryMap = $this->product_id
             ? DB::table('pack_operations_view')
                 ->where('product_id', $this->product_id)
+                ->whereDate('txn_date', '<=', $asOfDate)
                 ->selectRaw('pack_size_id, COALESCE(SUM(pack_count_in - pack_count_out), 0) as balance')
                 ->groupBy('pack_size_id')
                 ->pluck('balance', 'pack_size_id')
@@ -254,7 +269,11 @@ class UnpackingForm extends Component
 
             $available = $this->getAvailablePackCount((int) $line['pack_size_id']);
             if ((int) $line['pack_count'] > $available) {
-                $this->addError('lines', 'Not enough packs available for the selected size.');
+                $this->addError('lines', $this->formatPackShortageMessage(
+                    (int) $line['pack_size_id'],
+                    $available,
+                    (int) $line['pack_count']
+                ));
                 return;
             }
         }
@@ -265,6 +284,26 @@ class UnpackingForm extends Component
     private function isEditable(): bool
     {
         return ! $this->isLocked && ! $this->isReadOnly;
+    }
+
+    private function formatPackShortageMessage(int $packSizeId, int $available, int $required): string
+    {
+        $product = $this->products?->firstWhere('id', (int) $this->product_id);
+        $productName = $product?->name ?? ('Product ID '.$this->product_id);
+        $packSize = collect($this->packSizes)->firstWhere('id', $packSizeId);
+        $packLabel = $packSize
+            ? number_format((float) $packSize['pack_qty'], 3).' '.$packSize['pack_uom']
+            : ('Pack Size ID '.$packSizeId);
+        $shortage = $required - $available;
+
+        return sprintf(
+            'Insufficient packs for %s %s. Available %d, required %d. Short by %d.',
+            $productName,
+            $packLabel,
+            $available,
+            $required,
+            $shortage
+        );
     }
 
     public function render()

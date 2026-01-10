@@ -9,6 +9,7 @@ use App\Models\PackingMaterialUsage;
 use App\Models\Product;
 use App\Models\Unpacking;
 use App\Services\PackInventoryService;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -29,26 +30,14 @@ class PackingService
                 throw new RuntimeException('Add at least one packing line.');
             }
 
-            $availableBulk = $inventoryService->getOnHand($productId);
-            if ($totalBulkQty > $availableBulk) {
-                throw new RuntimeException('Insufficient bulk stock. Required '.$totalBulkQty.' exceeds available '.$availableBulk.'.');
-            }
-
             [$materialRequirements, $usageRows] = $this->calculateMaterialRequirements($lineSnapshots, $packSizes);
-
-            $materialProducts = collect();
-            if (! empty($materialRequirements)) {
-                $materialProducts = Product::whereIn('id', array_keys($materialRequirements))->get()->keyBy('id');
-
-                foreach ($materialRequirements as $materialId => $requiredQty) {
-                    $product = $materialProducts[$materialId] ?? null;
-                    $available = $inventoryService->getOnHand($materialId);
-                    if ($requiredQty > $available) {
-                        $name = $product?->name ?: ('Product ID '.$materialId);
-                        throw new RuntimeException("Insufficient packing material {$name}. Need {$requiredQty}, available {$available}.");
-                    }
-                }
-            }
+            $this->ensureStockAvailable(
+                $productId,
+                (string) $payload['date'],
+                $totalBulkQty,
+                $materialRequirements,
+                $inventoryService
+            );
 
             $packing = Packing::create([
                 'date' => $payload['date'],
@@ -82,11 +71,6 @@ class PackingService
 
             $this->persistMaterialUsages($packing, $usageRows, $packingItems);
 
-            foreach ($materialRequirements as $materialId => $requiredQty) {
-                $product = $materialProducts[$materialId] ?? null;
-                // Material consumption is captured via packing_material_usages; ledger entry removed.
-            }
-
             return $packing->load('items.packSize', 'product');
         });
     }
@@ -98,15 +82,16 @@ class PackingService
         return DB::transaction(function () use ($payload, $cleanLines, $inventoryService, $packInventoryService) {
             $productId = (int) $payload['product_id'];
             $packSizes = $this->getPackSizes($productId, $cleanLines->pluck('pack_size_id')->all());
+            $lineSnapshots = $this->hydrateLineSnapshots($cleanLines, $packSizes);
+            $this->ensureUnpackingStockAvailable(
+                $productId,
+                (string) $payload['date'],
+                $lineSnapshots,
+                $packSizes,
+                $packInventoryService
+            );
 
-            foreach ($cleanLines as $line) {
-                $availablePacks = $packInventoryService->getPackOnHand($productId, $line['pack_size_id']);
-                if ($line['pack_count'] > $availablePacks) {
-                    throw new RuntimeException('Insufficient packs for the selected size. Available '.$availablePacks.', requested '.$line['pack_count'].'.');
-                }
-            }
-
-            $totalBulkQty = $this->calculateTotalBulk($cleanLines, $packSizes);
+            $totalBulkQty = $this->calculateTotalBulkFromSnapshots($lineSnapshots);
             if ($totalBulkQty <= 0) {
                 throw new RuntimeException('Add at least one unpacking line.');
             }
@@ -165,35 +150,15 @@ class PackingService
                 throw new RuntimeException('Add at least one packing line.');
             }
 
-            $availableBulk = $inventoryService->getOnHand($productId);
-            if ($productId === (int) $packing->product_id) {
-                $availableBulk += (float) $packing->total_bulk_qty;
-            }
-
-            if ($totalBulkQty > $availableBulk) {
-                throw new RuntimeException('Insufficient bulk stock. Required '.$totalBulkQty.' exceeds available '.$availableBulk.'.');
-            }
-
             [$materialRequirements, $usageRows] = $this->calculateMaterialRequirements($lineSnapshots, $packSizes);
-
-            $existingUsage = $packing->materialUsages()
-                ->selectRaw('material_product_id, SUM(qty_used) as qty_used')
-                ->groupBy('material_product_id')
-                ->pluck('qty_used', 'material_product_id');
-
-            $materialProducts = collect();
-            if (! empty($materialRequirements)) {
-                $materialProducts = Product::whereIn('id', array_keys($materialRequirements))->get()->keyBy('id');
-
-                foreach ($materialRequirements as $materialId => $requiredQty) {
-                    $product = $materialProducts[$materialId] ?? null;
-                    $available = $inventoryService->getOnHand($materialId) + (float) ($existingUsage[$materialId] ?? 0);
-                    if ($requiredQty > $available) {
-                        $name = $product?->name ?: ('Product ID '.$materialId);
-                        throw new RuntimeException("Insufficient packing material {$name}. Need {$requiredQty}, available {$available}.");
-                    }
-                }
-            }
+            $this->ensureStockAvailable(
+                $productId,
+                (string) $payload['date'],
+                $totalBulkQty,
+                $materialRequirements,
+                $inventoryService,
+                $packing
+            );
 
             $oldItems = $packing->items()->get();
             $oldProductId = (int) $packing->product_id;
@@ -263,18 +228,15 @@ class PackingService
 
             $oldItems = $unpacking->items()->get();
             $oldProductId = (int) $unpacking->product_id;
-            $oldCounts = $oldItems->groupBy('pack_size_id')->map(fn ($items) => $items->sum('pack_count'));
 
-            foreach ($lineSnapshots as $line) {
-                $available = $packInventoryService->getPackOnHand($productId, $line['pack_size_id']);
-                if ($productId === $oldProductId) {
-                    $available += (int) ($oldCounts[$line['pack_size_id']] ?? 0);
-                }
-
-                if ($line['pack_count'] > $available) {
-                    throw new RuntimeException('Insufficient packs for the selected size. Available '.$available.', requested '.$line['pack_count'].'.');
-                }
-            }
+            $this->ensureUnpackingStockAvailable(
+                $productId,
+                (string) $payload['date'],
+                $lineSnapshots,
+                $packSizes,
+                $packInventoryService,
+                $unpacking
+            );
 
             $unpacking->update([
                 'date' => $payload['date'],
@@ -319,11 +281,26 @@ class PackingService
         });
     }
 
-    public function lock(Packing $packing, int $userId): Packing
+    public function lock(Packing $packing, int $userId, InventoryService $inventoryService): Packing
     {
         if ($packing->is_locked) {
             return $packing;
         }
+
+        $materialRequirements = $packing->materialUsages()
+            ->selectRaw('material_product_id, SUM(qty_used) as qty_used')
+            ->groupBy('material_product_id')
+            ->pluck('qty_used', 'material_product_id')
+            ->map(fn ($qty) => (float) $qty)
+            ->toArray();
+
+        $this->ensureStockAvailable(
+            (int) $packing->product_id,
+            $packing->date?->toDateString() ?? now()->toDateString(),
+            (float) $packing->total_bulk_qty,
+            $materialRequirements,
+            $inventoryService
+        );
 
         $packing->update([
             'is_locked' => true,
@@ -345,11 +322,34 @@ class PackingService
         return $packing->refresh();
     }
 
-    public function lockUnpacking(Unpacking $unpacking, int $userId): Unpacking
+    public function lockUnpacking(Unpacking $unpacking, int $userId, PackInventoryService $packInventoryService): Unpacking
     {
         if ($unpacking->is_locked) {
             return $unpacking;
         }
+
+        $lineSnapshots = $unpacking->items
+            ->map(function ($item) {
+                return [
+                    'pack_size_id' => (int) $item->pack_size_id,
+                    'pack_count' => (int) $item->pack_count,
+                    'pack_qty_snapshot' => (float) $item->pack_qty_snapshot,
+                    'pack_uom' => $item->pack_uom,
+                ];
+            });
+
+        $packSizes = $this->getPackSizes(
+            (int) $unpacking->product_id,
+            $lineSnapshots->pluck('pack_size_id')->all()
+        );
+
+        $this->ensureUnpackingStockAvailable(
+            (int) $unpacking->product_id,
+            $unpacking->date?->toDateString() ?? now()->toDateString(),
+            $lineSnapshots,
+            $packSizes,
+            $packInventoryService
+        );
 
         $unpacking->update([
             'is_locked' => true,
@@ -498,6 +498,106 @@ class PackingService
         return [$materialRequirements, $usageRows];
     }
 
+    private function ensureStockAvailable(
+        int $productId,
+        string $entryDate,
+        float $totalBulkQty,
+        array $materialRequirements,
+        InventoryService $inventoryService,
+        ?Packing $existingPacking = null
+    ): void {
+        $applyExisting = $existingPacking
+            ? $this->shouldApplyExistingQuantities($existingPacking->date, $entryDate)
+            : false;
+
+        $bulkDelta = $totalBulkQty;
+        if ($existingPacking && $applyExisting && (int) $existingPacking->product_id === $productId) {
+            $bulkDelta = $totalBulkQty - (float) $existingPacking->total_bulk_qty;
+        }
+
+        if ($bulkDelta > 0) {
+            $available = $inventoryService->getOnHandAsOf($productId, $entryDate);
+            if ($bulkDelta > $available) {
+                $productName = Product::find($productId)?->name ?? ('Product ID '.$productId);
+                throw new RuntimeException($this->formatStockShortageMessage($productName, $available, $bulkDelta));
+            }
+        }
+
+        $existingUsage = [];
+        if ($existingPacking && $applyExisting) {
+            $existingUsage = $existingPacking->materialUsages()
+                ->selectRaw('material_product_id, SUM(qty_used) as qty_used')
+                ->groupBy('material_product_id')
+                ->pluck('qty_used', 'material_product_id')
+                ->map(fn ($qty) => (float) $qty)
+                ->toArray();
+        }
+
+        if (empty($materialRequirements)) {
+            return;
+        }
+
+        $materialProducts = Product::whereIn('id', array_keys($materialRequirements))->get()->keyBy('id');
+        foreach ($materialRequirements as $materialId => $requiredQty) {
+            $delta = (float) $requiredQty - (float) ($existingUsage[$materialId] ?? 0);
+            if ($delta <= 0) {
+                continue;
+            }
+
+            $available = $inventoryService->getOnHandAsOf((int) $materialId, $entryDate);
+            if ($delta > $available) {
+                $name = $materialProducts[$materialId]->name ?? ('Product ID '.$materialId);
+                throw new RuntimeException($this->formatStockShortageMessage($name, $available, $delta));
+            }
+        }
+    }
+
+    private function ensureUnpackingStockAvailable(
+        int $productId,
+        string $entryDate,
+        Collection $lineSnapshots,
+        Collection $packSizes,
+        PackInventoryService $packInventoryService,
+        ?Unpacking $existingUnpacking = null
+    ): void {
+        $existingCounts = [];
+        if ($existingUnpacking
+            && $this->shouldApplyExistingQuantities($existingUnpacking->date, $entryDate)
+            && (int) $existingUnpacking->product_id === $productId
+        ) {
+            $existingCounts = $existingUnpacking->items()
+                ->selectRaw('pack_size_id, SUM(pack_count) as pack_count')
+                ->groupBy('pack_size_id')
+                ->pluck('pack_count', 'pack_size_id')
+                ->map(fn ($count) => (int) $count)
+                ->toArray();
+        }
+
+        $newTotals = $lineSnapshots
+            ->groupBy('pack_size_id')
+            ->map(fn ($items) => (int) $items->sum('pack_count'));
+
+        if ($newTotals->isEmpty()) {
+            return;
+        }
+
+        $productName = Product::find($productId)?->name ?? ('Product ID '.$productId);
+
+        foreach ($newTotals as $packSizeId => $newCount) {
+            $delta = (int) $newCount - (int) ($existingCounts[$packSizeId] ?? 0);
+            if ($delta <= 0) {
+                continue;
+            }
+
+            $available = $packInventoryService->getPackOnHandAsOf($productId, (int) $packSizeId, $entryDate);
+            if ($delta > $available) {
+                $packSize = $packSizes[$packSizeId] ?? null;
+                $packLabel = $packSize ? $this->formatPackSizeLabel($packSize) : ('Pack Size ID '.$packSizeId);
+                throw new RuntimeException($this->formatPackShortageMessage($productName, $packLabel, $available, $delta));
+            }
+        }
+    }
+
     /**
      * @param  array<int, array{line_index:int, pack_size_id:int, material_product_id:int, qty_used:float, uom:?string}>  $usageRows
      * @param  iterable<int, \App\Models\PackingItem>  $packingItems
@@ -564,5 +664,49 @@ class PackingService
         }
 
         return $packSizes;
+    }
+
+    private function formatStockShortageMessage(string $productName, float $available, float $required): string
+    {
+        $shortage = round($required - $available, 3);
+
+        return sprintf(
+            'Insufficient stock for %s. Available %s, required %s. Short by %s.',
+            $productName,
+            number_format($available, 3),
+            number_format($required, 3),
+            number_format($shortage, 3)
+        );
+    }
+
+    private function formatPackShortageMessage(string $productName, string $packLabel, int $available, int $required): string
+    {
+        $shortage = $required - $available;
+
+        return sprintf(
+            'Insufficient packs for %s %s. Available %d, required %d. Short by %d.',
+            $productName,
+            $packLabel,
+            $available,
+            $required,
+            $shortage
+        );
+    }
+
+    private function formatPackSizeLabel(PackSize $packSize): string
+    {
+        return number_format((float) $packSize->pack_qty, 3).' '.$packSize->pack_uom;
+    }
+
+    private function shouldApplyExistingQuantities($existingDate, string $targetDate): bool
+    {
+        if (! $existingDate) {
+            return false;
+        }
+
+        $currentDate = Carbon::parse($existingDate);
+        $desiredDate = Carbon::parse($targetDate);
+
+        return $currentDate->lessThanOrEqualTo($desiredDate);
     }
 }
