@@ -1,0 +1,164 @@
+<div class="product-container">
+    @php View::share('title_name', $title_name); @endphp
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <h2 class="page-heading" style="margin-bottom:0;">General Expenses</h2>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            @can('general_expense.create')
+                <a href="{{ route('general-expenses.create') }}" class="btn-primary" wire:navigate>Add Expense</a>
+            @endcan
+        </div>
+    </div>
+
+    @if(session('danger'))
+        <div class="toastr danger" style="margin-top:0.5rem;">{{ session('danger') }}</div>
+    @endif
+    @if(session('success'))
+        <div class="toastr success" style="margin-top:0.5rem;">{{ session('success') }}</div>
+    @endif
+
+    <div class="form-grid" style="margin-top:1rem;">
+        <div class="form-group">
+            <label for="dateFrom">Date From</label>
+            <input id="dateFrom" type="date" wire:model.live="dateFrom" class="input-field">
+        </div>
+        <div class="form-group">
+            <label for="dateTo">Date To</label>
+            <input id="dateTo" type="date" wire:model.live="dateTo" class="input-field">
+        </div>
+        <div class="form-group">
+            <label for="supplierId">Supplier</label>
+            <select id="supplierId" wire:model.live="supplierId" class="input-field">
+                <option value="">All</option>
+                @foreach($suppliers as $supplier)
+                    <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="lockedFilter">Locked?</label>
+            <select id="lockedFilter" wire:model.live="lockedFilter" class="input-field">
+                <option value="">All</option>
+                <option value="locked">Yes</option>
+                <option value="unlocked">No</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="search">Search</label>
+            <input id="search" type="text" wire:model.live="search" class="input-field" placeholder="Invoice no or remarks">
+        </div>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin: 1rem 0;">
+        <div class="per-page-select" style="margin-left:auto;">
+            <label for="perPage">Records per page:</label>
+            <select wire:model="perPage" wire:change="updatePerPage" id="perPage">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="product-table hover-highlight">
+            <thead>
+                <tr>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Date</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Supplier</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Invoice No</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Total</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Paid</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Balance</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Locked</th>
+                    <th class="px-4 py-2 border dark:border-zinc-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($expenses as $expense)
+                    @php
+                        $expenseTotal = (float) ($expense->expense_total ?? 0);
+                        $paidTotal = (float) ($expense->paid_total ?? 0);
+                        $balance = $expenseTotal - $paidTotal;
+                    @endphp
+                    <tr>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $expense->expense_date?->format('Y-m-d') }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $expense->supplier?->name ?? '—' }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $expense->invoice_no ?? '—' }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">₹{{ number_format($expenseTotal, 2) }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">₹{{ number_format($paidTotal, 2) }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">₹{{ number_format($balance, 2) }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">
+                            {{ $expense->is_locked ? 'Yes' : 'No' }}
+                            @if($expense->is_locked && $expense->locked_at)
+                                <div style="font-size:12px; color:gray;">{{ $expense->lockedBy?->name }} | {{ $expense->locked_at->format('d M Y H:i') }}</div>
+                            @endif
+                        </td>
+                        <td class="px-4 py-2 border dark:border-zinc-700" style="white-space:nowrap;">
+                            <span style="display:inline-flex; align-items:center; gap:8px;">
+                                <a href="{{ route('general-expenses.show', $expense->id) }}" class="action-link" wire:navigate>View</a>
+                                @if(! $expense->is_locked)
+                                    @can('general_expense.update')
+                                        <span aria-hidden="true">|</span>
+                                        <a href="{{ route('general-expenses.edit', $expense->id) }}" class="action-link" wire:navigate>Edit</a>
+                                    @endcan
+                                    @can('general_expense.delete')
+                                        <span aria-hidden="true">|</span>
+                                        <button type="button" class="action-link" style="border:none; background:transparent; padding:0;"
+                                            wire:click="deleteExpense({{ $expense->id }})"
+                                            onclick="return confirm('Delete this expense?')">Delete</button>
+                                    @endcan
+                                    @can('general_expense.lock')
+                                        <span aria-hidden="true">|</span>
+                                        <button type="button" class="action-link" style="border:none; background:transparent; padding:0;"
+                                            wire:click="confirmLock({{ $expense->id }})">Lock</button>
+                                    @endcan
+                                @else
+                                    @can('general_expense.unlock')
+                                        <span aria-hidden="true">|</span>
+                                        <button type="button" class="action-link" style="border:none; background:transparent; padding:0;"
+                                            wire:click="confirmUnlock({{ $expense->id }})">Unlock</button>
+                                    @endcan
+                                @endif
+                            </span>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="8" class="px-4 py-2 border dark:border-zinc-700" style="text-align:center;">No expenses found.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination-wrapper">
+        {{ $expenses->links() }}
+    </div>
+
+    @if($showLockModal)
+        <div style="position:fixed; inset:0; background:rgba(0,0,0,0.65); display:flex; align-items:center; justify-content:center; z-index:1000;">
+            <div style="background:#111827; color:#e5e7eb; padding:20px; border-radius:12px; max-width:420px; width:90%; border:1px solid #374151;">
+                <h3 style="margin-top:0; font-size:18px;">Lock expense?</h3>
+                <p style="margin:8px 0;">This cannot be undone.</p>
+                <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:16px;">
+                    <button type="button" class="btn-primary" style="background:#6b7280;" wire:click="$set('showLockModal', false)">Cancel</button>
+                    <button type="button" class="btn-danger" wire:click="lockConfirmed">Lock Now</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if($showUnlockModal)
+        <div style="position:fixed; inset:0; background:rgba(0,0,0,0.65); display:flex; align-items:center; justify-content:center; z-index:1000;">
+            <div style="background:#111827; color:#e5e7eb; padding:20px; border-radius:12px; max-width:420px; width:90%; border:1px solid #374151;">
+                <h3 style="margin-top:0; font-size:18px;">Unlock expense?</h3>
+                <p style="margin:8px 0;">This cannot be undone.</p>
+                <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:16px;">
+                    <button type="button" class="btn-primary" style="background:#6b7280;" wire:click="$set('showUnlockModal', false)">Cancel</button>
+                    <button type="button" class="btn-primary" style="background:#059669;" wire:click="unlockConfirmed">Unlock Now</button>
+                </div>
+            </div>
+        </div>
+    @endif
+</div>

@@ -535,13 +535,33 @@
                     @endcanany
                 </flux:navlist.group>
             @endcanany
-            @canany(['supplier.view', 'deliveryexpense.view', 'supplierpayment.view', 'purchase.view', 'grn.view'])
-                <flux:navlist.group expandable :heading="__('Supplier')" class="lg:grid" :expanded="request()->routeIs(['suppliers.*', 'delivery-expenses.*', 'supplier-payments.*', 'purchases.*', 'grns.*'])">
+            @canany(['expense_category.view', 'general_expense.view', 'general_expense_payment.view'])
+                <flux:navlist.group expandable :heading="__('General Expenses')" class="lg:grid" :expanded="request()->routeIs(['suppliers.*', 'delivery-expenses.*', 'expense-categories.*', 'general-expenses.*', 'general-expense-payments.*', 'supplier-payments.*', 'purchases.*', 'grns.*'])">
+                    @can('expense_category.view')
+                        <flux:navlist.item :href="route('expense-categories.view')" :current="request()->routeIs('expense-categories.*')" wire:navigate>{{ __('Expense Categories') }}</flux:navlist.item>
+                    @endcan
+                    @can('general_expense.view')
+                        <flux:navlist.item :href="route('general-expenses.view')" :current="request()->routeIs('general-expenses.*')" wire:navigate>{{ __('General Expenses') }}</flux:navlist.item>
+                    @endcan
+                    @can('general_expense_payment.view')
+                        <flux:navlist.item :href="route('general-expense-payments.view')" :current="request()->routeIs('general-expense-payments.*')" wire:navigate>{{ __('General Expenses Payment') }}</flux:navlist.item>
+                    @endcan
+                </flux:navlist.group>
+            @endcanany
+
+            @canany(['supplier.view', 'deliveryexpense.view', 'expense_category.view', 'general_expense.view', 'supplierpayment.view', 'purchase.view', 'grn.view'])
+                <flux:navlist.group expandable :heading="__('Supplier')" class="lg:grid" :expanded="request()->routeIs(['suppliers.*', 'delivery-expenses.*', 'expense-categories.*', 'general-expenses.*', 'supplier-payments.*', 'purchases.*', 'grns.*'])">
                     @can('supplier.view')
                         <flux:navlist.item :href="route('suppliers.view')" :current="request()->routeIs('suppliers.*')" wire:navigate>{{ __('Suppliers') }}</flux:navlist.item>
                     @endcan
                     @can('deliveryexpense.view')
                         <flux:navlist.item :href="route('delivery-expenses.view')" :current="request()->routeIs('delivery-expenses.*')" wire:navigate>{{ __('Delivery Expenses') }}</flux:navlist.item>
+                    @endcan
+                    @can('expense_category.view')
+                        <flux:navlist.item :href="route('expense-categories.view')" :current="request()->routeIs('expense-categories.*')" wire:navigate>{{ __('Expense Categories') }}</flux:navlist.item>
+                    @endcan
+                    @can('general_expense.view')
+                        <flux:navlist.item :href="route('general-expenses.view')" :current="request()->routeIs('general-expenses.*')" wire:navigate>{{ __('General Expenses') }}</flux:navlist.item>
                     @endcan
                     @can('grn.view')
                         <flux:navlist.item :href="route('grns.view')" :current="request()->routeIs('grns.*')" wire:navigate>{{ __('Material Received (GRN)') }}</flux:navlist.item>

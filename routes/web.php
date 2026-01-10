@@ -46,6 +46,13 @@ use App\Livewire\Dispatch\Form as DispatchForm;
 use App\Livewire\Dispatch\Show as DispatchShow;
 use App\Livewire\DeliveryExpense\View as DeliveryExpenseView;
 use App\Livewire\DeliveryExpense\Form as DeliveryExpenseForm;
+use App\Livewire\ExpenseCategory\View as ExpenseCategoryView;
+use App\Livewire\GeneralExpense\Form as GeneralExpenseForm;
+use App\Livewire\GeneralExpense\Show as GeneralExpenseShow;
+use App\Livewire\GeneralExpense\View as GeneralExpenseView;
+use App\Livewire\GeneralExpensePayment\Form as GeneralExpensePaymentForm;
+use App\Livewire\GeneralExpensePayment\Show as GeneralExpensePaymentShow;
+use App\Livewire\GeneralExpensePayment\View as GeneralExpensePaymentView;
 use App\Livewire\SupplierPayment\Form as SupplierPaymentForm;
 use App\Livewire\SupplierPayment\Show as SupplierPaymentShow;
 use App\Livewire\SupplierPayment\View as SupplierPaymentView;
@@ -398,6 +405,38 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:deliveryexpense.update')
         ->whereNumber('expense')
         ->name('delivery-expenses.edit');
+
+    Route::get('expense-categories', ExpenseCategoryView::class)
+        ->middleware('permission:expense_category.view')
+        ->name('expense-categories.view');
+
+    Route::middleware('permission:general_expense.view')->group(function () {
+        Route::get('general-expenses', GeneralExpenseView::class)->name('general-expenses.view');
+        Route::get('general-expenses/{expense}', GeneralExpenseShow::class)
+            ->whereNumber('expense')
+            ->name('general-expenses.show');
+    });
+    Route::get('general-expenses/create', GeneralExpenseForm::class)
+        ->middleware('permission:general_expense.create')
+        ->name('general-expenses.create');
+    Route::get('general-expenses/{expense}/edit', GeneralExpenseForm::class)
+        ->middleware('permission:general_expense.update')
+        ->whereNumber('expense')
+        ->name('general-expenses.edit');
+
+    Route::middleware('permission:general_expense_payment.view')->group(function () {
+        Route::get('general-expense-payments', GeneralExpensePaymentView::class)->name('general-expense-payments.view');
+        Route::get('general-expense-payments/{payment}', GeneralExpensePaymentShow::class)
+            ->whereNumber('payment')
+            ->name('general-expense-payments.show');
+    });
+    Route::get('general-expense-payments/create', GeneralExpensePaymentForm::class)
+        ->middleware('permission:general_expense_payment.create')
+        ->name('general-expense-payments.create');
+    Route::get('general-expense-payments/{payment}/edit', GeneralExpensePaymentForm::class)
+        ->middleware('permission:general_expense_payment.update')
+        ->whereNumber('payment')
+        ->name('general-expense-payments.edit');
 
     Route::middleware('permission:supplierpayment.view')->group(function () {
         Route::get('supplier-payments', SupplierPaymentView::class)->name('supplier-payments.view');

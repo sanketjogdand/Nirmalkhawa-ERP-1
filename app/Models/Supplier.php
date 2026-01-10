@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\DispatchDeliveryExpense;
+use App\Models\GeneralExpense;
+use App\Models\GeneralExpensePayment;
 use App\Models\Purchase;
 use App\Models\SupplierPayment;
 use Illuminate\Database\Eloquent\Model;
@@ -69,6 +71,16 @@ class Supplier extends Model
     public function purchases(): HasMany
     {
         return $this->hasMany(Purchase::class);
+    }
+
+    public function generalExpenses(): HasMany
+    {
+        return $this->hasMany(GeneralExpense::class);
+    }
+
+    public function generalExpensePayments(): HasMany
+    {
+        return $this->hasMany(GeneralExpensePayment::class);
     }
 
     /**
