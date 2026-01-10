@@ -331,7 +331,7 @@ class Setup extends Component
     {
         $paymentModes = DB::table('payment_modes')->orderBy('name')->paginate(5, pageName: 'pm');
         $companyAccounts = DB::table('company_accounts')->orderBy('name')->paginate(5, pageName: 'ca');
-        // $transactionTypes = DB::table('transaction_types')->orderBy('name')->paginate(5, pageName: 'tt');
+        $transactionTypes = DB::table('transaction_types')->orderBy('name')->paginate(5, pageName: 'tt');
 
         $uoms = DB::table('uoms')->orderBy('name')->paginate(10, pageName: 'uom');
         $states = DB::table('states')->orderBy('name')->paginate(10, pageName: 'state');
@@ -400,7 +400,7 @@ class Setup extends Component
         return view('livewire.setup',  compact(
             'paymentModes',
             'companyAccounts',
-            // 'transactionTypes',
+            'transactionTypes',
             'states',
             'districts',
             'talukas',

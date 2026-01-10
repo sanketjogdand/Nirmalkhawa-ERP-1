@@ -77,7 +77,7 @@
 
 
 
-    {{--<div style="border-radius: 4px; padding:1rem;">
+    <div style="border-radius: 4px; padding:1rem;">
         <h2 class="page-heading">Transaction Types</h2>
         <form wire:submit.prevent="savetransactionTypes">
             <div class="form-grid">
@@ -111,7 +111,7 @@
             </table>
         </div>
         <div class="pagination-wrapper">{{ $transactionTypes->links() }}</div>
-    </div>--}}
+    </div>
 
 
 

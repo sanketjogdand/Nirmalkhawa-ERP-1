@@ -56,6 +56,8 @@ use App\Livewire\GeneralExpensePayment\View as GeneralExpensePaymentView;
 use App\Livewire\SupplierPayment\Form as SupplierPaymentForm;
 use App\Livewire\SupplierPayment\Show as SupplierPaymentShow;
 use App\Livewire\SupplierPayment\View as SupplierPaymentView;
+use App\Livewire\Transaction\Form as TransactionForm;
+use App\Livewire\Transaction\View as TransactionView;
 use App\Livewire\Purchase\Form as PurchaseForm;
 use App\Livewire\Purchase\Show as PurchaseShow;
 use App\Livewire\Purchase\View as PurchaseView;
@@ -437,6 +439,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:general_expense_payment.update')
         ->whereNumber('payment')
         ->name('general-expense-payments.edit');
+
+    Route::middleware('permission:transaction.view')->group(function () {
+        Route::get('transactions', TransactionView::class)->name('transactions.view');
+    });
+    Route::get('transactions/create', TransactionForm::class)
+        ->middleware('permission:transaction.create')
+        ->name('transactions.create');
+    Route::get('transactions/{transaction}/edit', TransactionForm::class)
+        ->middleware('permission:transaction.update')
+        ->whereNumber('transaction')
+        ->name('transactions.edit');
 
     Route::middleware('permission:supplierpayment.view')->group(function () {
         Route::get('supplier-payments', SupplierPaymentView::class)->name('supplier-payments.view');
