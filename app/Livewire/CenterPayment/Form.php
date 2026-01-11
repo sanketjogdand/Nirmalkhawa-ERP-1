@@ -4,7 +4,7 @@ namespace App\Livewire\CenterPayment;
 
 use App\Models\Center;
 use App\Models\CenterPayment;
-use App\Models\CenterSettlement;
+use App\Services\CenterBalanceService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +20,7 @@ class Form extends Component
     public ?int $paymentId = null;
     public $center_id;
     public $payment_date;
+    public $payment_type = CenterPayment::TYPE_REGULAR;
     public $amount;
     public $payment_mode;
     public $company_account;
@@ -45,6 +46,7 @@ class Form extends Component
             $this->fill($record->only([
                 'center_id',
                 'payment_date',
+                'payment_type',
                 'amount',
                 'payment_mode',
                 'company_account',
@@ -57,6 +59,7 @@ class Form extends Component
         } else {
             $this->authorize('centerpayment.create');
             $this->payment_date = now()->toDateString();
+            $this->payment_type = CenterPayment::TYPE_REGULAR;
         }
 
         $this->refreshBalance();
@@ -67,7 +70,7 @@ class Form extends Component
         $this->resetErrorBag($field);
         session()->forget('success');
 
-        if ($field === 'center_id') {
+        if (in_array($field, ['center_id', 'payment_date'], true)) {
             $this->refreshBalance();
         }
     }
@@ -109,6 +112,7 @@ class Form extends Component
         return [
             'center_id' => ['required', 'exists:centers,id'],
             'payment_date' => ['required', 'date'],
+            'payment_type' => ['required', Rule::in([CenterPayment::TYPE_ADVANCE, CenterPayment::TYPE_REGULAR])],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_mode' => ['required', 'string', 'max:100', Rule::exists('payment_modes', 'name')],
             'company_account' => ['required', 'string', 'max:150', Rule::exists('company_accounts', 'name')],
@@ -124,15 +128,9 @@ class Form extends Component
             return;
         }
 
-        $settled = CenterSettlement::where('center_id', $this->center_id)->sum('net_total');
-
-        $paidQuery = CenterPayment::where('center_id', $this->center_id);
-        if ($this->paymentId) {
-            $paidQuery->where('id', '!=', $this->paymentId);
-        }
-        $paid = $paidQuery->sum('amount');
-
-        $this->balancePayable = round((float) $settled - (float) $paid, 2);
+        $toDate = $this->payment_date ?: now()->toDateString();
+        $balanceService = app(CenterBalanceService::class);
+        $this->balancePayable = $balanceService->getNetPayableTillDate((int) $this->center_id, $toDate);
     }
 
     private function resetForm(): void
@@ -140,6 +138,7 @@ class Form extends Component
         $this->reset([
             'center_id',
             'payment_date',
+            'payment_type',
             'amount',
             'payment_mode',
             'company_account',
@@ -147,6 +146,7 @@ class Form extends Component
             'remarks',
         ]);
         $this->payment_date = now()->toDateString();
+        $this->payment_type = CenterPayment::TYPE_REGULAR;
         $this->refreshBalance();
     }
 }

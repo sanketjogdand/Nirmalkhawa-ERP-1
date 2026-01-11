@@ -24,7 +24,9 @@
             <tbody>
                 <tr>
                     <td class="px-4 py-2 border dark:border-zinc-700">{{ $rateChart->code }}</td>
-                    <td class="px-4 py-2 border dark:border-zinc-700">{{ $rateChart->milk_type === 'CM' ? 'Cow Milk' : 'Buffalo Milk' }}</td>
+                    <td class="px-4 py-2 border dark:border-zinc-700">
+                        {{ $rateChart->milk_type === 'CM' ? 'Cow Milk' : ($rateChart->milk_type === 'BM' ? 'Buffalo Milk' : 'Mix Milk') }}
+                    </td>
                     <td class="px-4 py-2 border dark:border-zinc-700">₹{{ number_format($rateChart->base_rate, 2) }}</td>
                     <td class="px-4 py-2 border dark:border-zinc-700">{{ $rateChart->base_fat }} / {{ $rateChart->base_snf }}</td>
                     <td class="px-4 py-2 border dark:border-zinc-700">

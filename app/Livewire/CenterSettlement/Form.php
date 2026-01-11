@@ -23,7 +23,13 @@ class Form extends Component
     public $center_id;
     public $period_from;
     public $period_to;
-    public $notes;
+    public $remarks;
+    public $incentive_amount = 0;
+    public $advance_deducted = 0;
+    public $short_adjustment = 0;
+    public $other_deductions = 0;
+    public $discount_amount = 0;
+    public $tds_amount = 0;
 
     public string $selectedMonth;
     public $templateId = '';
@@ -54,12 +60,19 @@ class Form extends Component
             $this->center_id = $record->center_id;
             $this->period_from = $record->period_from?->toDateString();
             $this->period_to = $record->period_to?->toDateString();
-            $this->notes = $record->notes;
+            $this->remarks = $record->remarks ?? $record->notes;
+            $this->incentive_amount = $record->incentive_amount ?? 0;
+            $this->advance_deducted = $record->advance_deducted ?? 0;
+            $this->short_adjustment = $record->short_adjustment ?? 0;
+            $this->other_deductions = $record->other_deductions ?? 0;
+            $this->discount_amount = $record->discount_amount ?? 0;
+            $this->tds_amount = $record->tds_amount ?? 0;
             $this->selectedMonth = $record->period_from?->format('Y-m') ?? $this->selectedMonth;
 
             $this->refreshPreview();
         } else {
             $this->authorize('centersettlement.create');
+            $this->resetAdjustments();
             $this->applyTemplate();
             $this->refreshPreview();
         }
@@ -67,7 +80,17 @@ class Form extends Component
 
     public function updated($property): void
     {
-        if (in_array($property, ['center_id', 'period_from', 'period_to'])) {
+        if (in_array($property, [
+            'center_id',
+            'period_from',
+            'period_to',
+            'incentive_amount',
+            'advance_deducted',
+            'short_adjustment',
+            'other_deductions',
+            'discount_amount',
+            'tds_amount',
+        ])) {
             $this->refreshPreview();
         }
 
@@ -90,24 +113,34 @@ class Form extends Component
             'center_id' => ['required', 'exists:centers,id'],
             'period_from' => ['required', 'date'],
             'period_to' => ['required', 'date', 'after_or_equal:period_from'],
-            'notes' => ['nullable', 'string'],
+            'incentive_amount' => ['nullable', 'numeric', 'min:0'],
+            'advance_deducted' => ['nullable', 'numeric', 'min:0'],
+            'short_adjustment' => ['nullable', 'numeric', 'min:0'],
+            'other_deductions' => ['nullable', 'numeric', 'min:0'],
+            'discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'tds_amount' => ['nullable', 'numeric', 'min:0'],
+            'remarks' => ['nullable', 'string'],
         ], [], [
             'center_id' => 'Center',
             'period_from' => 'Period from',
             'period_to' => 'Period to',
         ]);
 
+        $adjustments = $this->adjustmentPayload();
+
         try {
             if ($this->settlementId) {
                 $settlement = CenterSettlement::findOrFail($this->settlementId);
                 $settlement = $service->updateSettlement($settlement, [
                     ...$data,
-                    'notes' => $data['notes'] ?? null,
+                    ...$adjustments,
+                    'remarks' => $data['remarks'] ?? null,
                 ]);
             } else {
                 $settlement = $service->createSettlement([
                     ...$data,
-                    'notes' => $data['notes'] ?? null,
+                    ...$adjustments,
+                    'remarks' => $data['remarks'] ?? null,
                 ]);
             }
         } catch (RuntimeException $e) {
@@ -144,7 +177,10 @@ class Form extends Component
             ->get();
 
         $this->previewCount = $intakes->count();
-        $this->previewTotals = app(CenterSettlementService::class)->calculateTotals($intakes);
+        $this->previewTotals = app(CenterSettlementService::class)->calculateTotals(
+            $intakes,
+            $this->adjustmentPayload()
+        );
         $this->previewRows = $intakes->map(function (MilkIntake $intake) {
             return [
                 'id' => $intake->id,
@@ -195,6 +231,12 @@ class Form extends Component
             'total_qty_ltr' => 0,
             'gross_amount_total' => 0,
             'commission_total' => 0,
+            'incentive_amount' => 0,
+            'advance_deducted' => 0,
+            'short_adjustment' => 0,
+            'other_deductions' => 0,
+            'discount_amount' => 0,
+            'tds_amount' => 0,
             'net_total' => 0,
             'cm_qty_ltr' => 0,
             'cm_gross_amount' => 0,
@@ -205,5 +247,36 @@ class Form extends Component
             'bm_commission' => 0,
             'bm_net' => 0,
         ];
+    }
+
+    private function adjustmentPayload(): array
+    {
+        return [
+            'incentive_amount' => $this->normalizeAmount($this->incentive_amount),
+            'advance_deducted' => $this->normalizeAmount($this->advance_deducted),
+            'short_adjustment' => $this->normalizeAmount($this->short_adjustment),
+            'other_deductions' => $this->normalizeAmount($this->other_deductions),
+            'discount_amount' => $this->normalizeAmount($this->discount_amount),
+            'tds_amount' => $this->normalizeAmount($this->tds_amount),
+        ];
+    }
+
+    private function normalizeAmount($value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        return (float) $value;
+    }
+
+    private function resetAdjustments(): void
+    {
+        $this->incentive_amount = 0;
+        $this->advance_deducted = 0;
+        $this->short_adjustment = 0;
+        $this->other_deductions = 0;
+        $this->discount_amount = 0;
+        $this->tds_amount = 0;
     }
 }

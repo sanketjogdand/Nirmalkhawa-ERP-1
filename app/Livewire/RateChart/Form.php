@@ -63,10 +63,10 @@ class Form extends Component
                 'required',
                 'string',
                 'max:50',
-                'regex:/^RC-(CM|BM)-[0-9]{4}-[0-9]{3}$/',
+                'regex:/^RC-(CM|BM|MIX)-[0-9]{4}-[0-9]{3}$/',
                 Rule::unique('rate_charts', 'code')->ignore($this->rateChartId),
             ],
-            'milk_type' => ['required', 'in:CM,BM'],
+            'milk_type' => ['required', 'in:CM,BM,MIX'],
             'base_rate' => ['required', 'numeric', 'gt:0'],
             'base_fat' => ['required', 'numeric', 'gt:0'],
             'base_snf' => ['required', 'numeric', 'gt:0'],
@@ -113,7 +113,7 @@ class Form extends Component
             ->value('code');
 
         $next = 1;
-        if ($latest && preg_match('/^RC-(CM|BM)-\d{4}-(\d{3})$/', $latest, $matches)) {
+        if ($latest && preg_match('/^RC-(CM|BM|MIX)-\d{4}-(\d{3})$/', $latest, $matches)) {
             $next = (int) $matches[2] + 1;
         }
 

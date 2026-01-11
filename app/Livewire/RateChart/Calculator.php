@@ -34,7 +34,7 @@ class Calculator extends Component
     {
         $data = $this->validate([
             'center_id' => ['required', 'exists:centers,id'],
-            'milk_type' => ['required', 'in:CM,BM'],
+            'milk_type' => ['required', 'in:CM,BM,MIX'],
             'date' => ['required', 'date'],
             'fat' => ['required', 'numeric'],
             'snf' => ['required', 'numeric'],

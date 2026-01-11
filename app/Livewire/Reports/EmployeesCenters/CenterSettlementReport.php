@@ -35,6 +35,8 @@ class CenterSettlementReport extends BaseReport
 
         $payments = DB::table('center_payments as cp')
             ->whereNull('cp.deleted_at')
+            ->where('cp.payment_type', 'REGULAR')
+            ->where('cp.is_locked', true)
             ->when($this->fromDate, fn ($q) => $q->whereDate('cp.payment_date', '>=', $this->fromDate))
             ->when($this->toDate, fn ($q) => $q->whereDate('cp.payment_date', '<=', $this->toDate))
             ->selectRaw('cp.center_id as center_id, SUM(cp.amount) as paid')

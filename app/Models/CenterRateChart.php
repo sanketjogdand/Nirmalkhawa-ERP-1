@@ -14,12 +14,14 @@ class CenterRateChart extends Model
 
     protected $fillable = [
         'center_id',
+        'milk_type',
         'rate_chart_id',
         'effective_from',
         'effective_to',
     ];
 
     protected $casts = [
+        'milk_type' => 'string',
         'effective_from' => 'date',
         'effective_to' => 'date',
     ];

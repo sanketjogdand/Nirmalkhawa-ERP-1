@@ -204,6 +204,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'payroll.lock',
             'payroll.unlock',
             'report.view',
+            'center_bill.view',
         ];
 
         foreach ($permissions as $permission) {
@@ -351,6 +352,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'payroll.create',
             'payroll.update',
             'payroll.lock',
+            'center_bill.view',
         ]);
 
         $productionSupervisorRole = Role::firstOrCreate(['name' => 'Production Supervisor']);

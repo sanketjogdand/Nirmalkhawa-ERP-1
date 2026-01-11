@@ -44,9 +44,43 @@
                 <input id="period_to" type="date" wire:model.live="period_to" class="input-field" required>
                 @error('period_to') <div style="color:#ef4444; font-size:13px;">{{ $message }}</div> @enderror
             </div>
+        </div>
+
+        <div class="form-grid" style="margin-top:12px;">
+            <div class="form-group">
+                <label for="incentive_amount">Incentive</label>
+                <input id="incentive_amount" type="number" step="0.01" min="0" wire:model.live="incentive_amount" class="input-field">
+                @error('incentive_amount') <div style="color:#ef4444; font-size:13px;">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group">
+                <label for="advance_deducted">Advance Deducted</label>
+                <input id="advance_deducted" type="number" step="0.01" min="0" wire:model.live="advance_deducted" class="input-field">
+                @error('advance_deducted') <div style="color:#ef4444; font-size:13px;">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group">
+                <label for="short_adjustment">Short Adjustment</label>
+                <input id="short_adjustment" type="number" step="0.01" min="0" wire:model.live="short_adjustment" class="input-field">
+                @error('short_adjustment') <div style="color:#ef4444; font-size:13px;">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group">
+                <label for="other_deductions">Other Deductions</label>
+                <input id="other_deductions" type="number" step="0.01" min="0" wire:model.live="other_deductions" class="input-field">
+                @error('other_deductions') <div style="color:#ef4444; font-size:13px;">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group">
+                <label for="discount_amount">Discount</label>
+                <input id="discount_amount" type="number" step="0.01" min="0" wire:model.live="discount_amount" class="input-field">
+                @error('discount_amount') <div style="color:#ef4444; font-size:13px;">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group">
+                <label for="tds_amount">TDS</label>
+                <input id="tds_amount" type="number" step="0.01" min="0" wire:model.live="tds_amount" class="input-field">
+                @error('tds_amount') <div style="color:#ef4444; font-size:13px;">{{ $message }}</div> @enderror
+            </div>
             <div class="form-group span-2">
-                <label for="notes">Notes</label>
-                <textarea id="notes" wire:model.live="notes" class="input-field" rows="3" placeholder="Optional remarks"></textarea>
+                <label for="remarks">Remarks</label>
+                <textarea id="remarks" wire:model.live="remarks" class="input-field" rows="3" placeholder="Optional remarks"></textarea>
+                @error('remarks') <div style="color:#ef4444; font-size:13px;">{{ $message }}</div> @enderror
             </div>
         </div>
 

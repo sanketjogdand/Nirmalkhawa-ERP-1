@@ -22,8 +22,8 @@ class MilkRateCalculator
 
         $assignment = CenterRateChart::query()
             ->where('center_id', $centerModel->id)
+            ->where('milk_type', $milkType)
             ->forDate($targetDate)
-            ->whereHas('rateChart', fn ($query) => $query->forMilkType($milkType))
             ->with(['rateChart.slabs'])
             ->orderByDesc('effective_from')
             ->orderByDesc('id')

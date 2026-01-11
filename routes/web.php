@@ -114,6 +114,8 @@ use App\Livewire\Reports\EmployeesCenters\AttendanceRegister;
 use App\Livewire\Reports\EmployeesCenters\SalaryRegister;
 use App\Livewire\Reports\EmployeesCenters\EmployeeBalanceReport;
 use App\Livewire\Reports\EmployeesCenters\CenterSettlementReport;
+use App\Livewire\Reports\EmployeesCenters\CenterPeriodBillReport;
+use App\Http\Controllers\Reports\CenterPeriodBillPdfController;
 use App\Livewire\Reports\GstCompliance\GstOutputSummary;
 use App\Livewire\Reports\GstCompliance\GstInputSummary;
 use App\Livewire\Reports\GstCompliance\RcmSummary;
@@ -590,6 +592,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:materialconsumption.update')
         ->whereNumber('materialConsumption')
         ->name('material-consumptions.edit');
+
+    Route::middleware('permission:center_bill.view')->prefix('reports')->name('reports.')->group(function () {
+        Route::get('employees-centers/center-period-bill', CenterPeriodBillReport::class)->name('employees-centers.center-period-bill');
+        Route::get('employees-centers/center-period-bill/pdf', CenterPeriodBillPdfController::class)
+            ->name('employees-centers.center-period-bill.pdf');
+    });
 
     Route::middleware('permission:report.view')->prefix('reports')->name('reports.')->group(function () {
         Route::get('milk-production/center-wise-milk-summary', CenterWiseMilkSummary::class)->name('milk-production.center-wise-milk-summary');

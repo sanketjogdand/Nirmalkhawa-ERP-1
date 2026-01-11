@@ -37,8 +37,8 @@
                 @endif
             </div>
             <div style="padding:12px; border-radius:8px;" class="border dark:border-zinc-700 dark:bg-zinc-800">
-                <div style="font-size:13px; color:gray;">Notes</div>
-                <div style="font-size:14px;">{{ $settlement->notes ?: '—' }}</div>
+                <div style="font-size:13px; color:gray;">Remarks</div>
+                <div style="font-size:14px;">{{ $settlement->remarks ?: ($settlement->notes ?: '—') }}</div>
             </div>
         </div>
 
@@ -72,6 +72,36 @@
                 <div style="font-size:13px; color:gray;">BM Qty (Ltr)</div>
                 <div style="font-size:16px; font-weight:600;">{{ number_format($settlement->bm_qty_ltr, 2) }}</div>
                 <div style="font-size:12px; color:gray;">Net ₹{{ number_format($settlement->bm_net, 2) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top:16px; padding:16px; border-radius:8px;" class="dark:bg-zinc-800 border dark:border-zinc-700">
+        <div style="font-weight:700; font-size:16px; margin-bottom:8px;">Adjustments</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
+            <div style="padding:12px; border-radius:8px;" class="border dark:border-zinc-700 dark:bg-zinc-700">
+                <div style="font-size:13px; color:gray;">Incentive</div>
+                <div style="font-size:16px; font-weight:600;">₹{{ number_format($settlement->incentive_amount ?? 0, 2) }}</div>
+            </div>
+            <div style="padding:12px; border-radius:8px;" class="border dark:border-zinc-700 dark:bg-zinc-700">
+                <div style="font-size:13px; color:gray;">Advance Deducted</div>
+                <div style="font-size:16px; font-weight:600;">₹{{ number_format($settlement->advance_deducted ?? 0, 2) }}</div>
+            </div>
+            <div style="padding:12px; border-radius:8px;" class="border dark:border-zinc-700 dark:bg-zinc-700">
+                <div style="font-size:13px; color:gray;">Short Adjustment</div>
+                <div style="font-size:16px; font-weight:600;">₹{{ number_format($settlement->short_adjustment ?? 0, 2) }}</div>
+            </div>
+            <div style="padding:12px; border-radius:8px;" class="border dark:border-zinc-700 dark:bg-zinc-700">
+                <div style="font-size:13px; color:gray;">Other Deductions</div>
+                <div style="font-size:16px; font-weight:600;">₹{{ number_format($settlement->other_deductions ?? 0, 2) }}</div>
+            </div>
+            <div style="padding:12px; border-radius:8px;" class="border dark:border-zinc-700 dark:bg-zinc-700">
+                <div style="font-size:13px; color:gray;">Discount</div>
+                <div style="font-size:16px; font-weight:600;">₹{{ number_format($settlement->discount_amount ?? 0, 2) }}</div>
+            </div>
+            <div style="padding:12px; border-radius:8px;" class="border dark:border-zinc-700 dark:bg-zinc-700">
+                <div style="font-size:13px; color:gray;">TDS</div>
+                <div style="font-size:16px; font-weight:600;">₹{{ number_format($settlement->tds_amount ?? 0, 2) }}</div>
             </div>
         </div>
     </div>

@@ -6,7 +6,7 @@
         <div class="form-grid">
             <div class="form-group">
                 <label for="code">Code<span style="color:red;">*</span><small style="color:gray;"> (Auto-generated)</small></label>
-                <input id="code" type="text" wire:model="code" class="input-field" placeholder="e.g. RC-CM-2024-001" required pattern="^RC-(CM|BM)-[0-9]{4}-[0-9]{3}$" title="Use format RC-CM-2024-001 or RC-BM-2024-001" readonly>
+                <input id="code" type="text" wire:model="code" class="input-field" placeholder="e.g. RC-CM-2024-001" required pattern="^RC-(CM|BM|MIX)-[0-9]{4}-[0-9]{3}$" title="Use format RC-CM-2024-001, RC-BM-2024-001, or RC-MIX-2024-001" readonly>
                 @error('code')<span style="color:red; font-size:12px;">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">
@@ -14,6 +14,7 @@
                 <select id="milk_type" wire:model.live="milk_type" class="input-field" required>
                     <option value="CM">Cow Milk</option>
                     <option value="BM">Buffalo Milk</option>
+                    <option value="MIX">Mix Milk</option>
                 </select>
                 @error('milk_type')<span style="color:red; font-size:12px;">{{ $message }}</span>@enderror
             </div>

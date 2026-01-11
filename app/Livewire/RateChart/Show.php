@@ -121,20 +121,23 @@ class Show extends Component
         $from = Carbon::parse($data['assignment_effective_from'])->toDateString();
         $to = $data['assignment_effective_to'] ? Carbon::parse($data['assignment_effective_to'])->toDateString() : null;
 
+        $milkType = $this->rateChart->milk_type;
+
         foreach ($data['selectedCenters'] as $centerId) {
-            if ($this->hasOverlappingAssignment($centerId, $from, $to, $this->assignmentId)) {
+            if ($this->hasOverlappingAssignment($centerId, $milkType, $from, $to, $this->assignmentId)) {
                 $this->addError('selectedCenters', 'Selected center already has a rate chart in this period.');
                 return;
             }
         }
 
         foreach ($data['selectedCenters'] as $centerId) {
-            $this->closePreviousAssignmentIfNeeded($centerId, $from, $this->assignmentId);
+            $this->closePreviousAssignmentIfNeeded($centerId, $milkType, $from, $this->assignmentId);
         }
 
         if ($this->assignmentId) {
             CenterRateChart::where('id', $this->assignmentId)->update([
                 'center_id' => $data['selectedCenters'][0],
+                'milk_type' => $milkType,
                 'rate_chart_id' => $this->rateChart->id,
                 'effective_from' => $from,
                 'effective_to' => $to,
@@ -144,6 +147,7 @@ class Show extends Component
             foreach ($data['selectedCenters'] as $centerId) {
                 CenterRateChart::create([
                     'center_id' => $centerId,
+                    'milk_type' => $milkType,
                     'rate_chart_id' => $this->rateChart->id,
                     'effective_from' => $from,
                     'effective_to' => $to,
@@ -231,10 +235,11 @@ class Show extends Component
         ]);
     }
 
-    private function closePreviousAssignmentIfNeeded(int $centerId, string $newFrom, ?int $ignoreId = null): void
+    private function closePreviousAssignmentIfNeeded(int $centerId, string $milkType, string $newFrom, ?int $ignoreId = null): void
     {
         $previousAssignment = CenterRateChart::query()
             ->where('center_id', $centerId)
+            ->where('milk_type', $milkType)
             ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
             ->orderByDesc('effective_from')
             ->orderByDesc('id')
@@ -261,12 +266,13 @@ class Show extends Component
             ->exists();
     }
 
-    private function hasOverlappingAssignment(int $centerId, string $from, ?string $to, ?int $ignoreId = null): bool
+    private function hasOverlappingAssignment(int $centerId, string $milkType, string $from, ?string $to, ?int $ignoreId = null): bool
     {
         $toDate = $to ?? '9999-12-31';
 
         return CenterRateChart::query()
             ->where('center_id', $centerId)
+            ->where('milk_type', $milkType)
             ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
             ->where('effective_from', '<=', $toDate)
             ->where(function ($q) use ($from) {

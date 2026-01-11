@@ -23,6 +23,7 @@
                 <option value="">All</option>
                 <option value="CM">Cow Milk</option>
                 <option value="BM">Buffalo Milk</option>
+                <option value="MIX">Mix Milk</option>
             </select>
         </div>
         <div class="form-group">
@@ -60,7 +61,9 @@
                 @forelse ($charts as $chart)
                     <tr>
                         <td class="px-4 py-2 border dark:border-zinc-700" style="font-weight:600;">{{ $chart->code }}</td>
-                        <td class="px-4 py-2 border dark:border-zinc-700">{{ $chart->milk_type === 'CM' ? 'Cow Milk' : 'Buffalo Milk' }}</td>
+                        <td class="px-4 py-2 border dark:border-zinc-700">
+                            {{ $chart->milk_type === 'CM' ? 'Cow Milk' : ($chart->milk_type === 'BM' ? 'Buffalo Milk' : 'Mix Milk') }}
+                        </td>
                         <td class="px-4 py-2 border dark:border-zinc-700">
                             ₹{{ number_format($chart->base_rate, 2) }}
                             <div style="font-size:12px; color:gray;">Base FAT {{ $chart->base_fat }} / SNF {{ $chart->base_snf }}</div>

@@ -10,9 +10,13 @@ class CenterPayment extends Model
 {
     use SoftDeletes;
 
+    public const TYPE_ADVANCE = 'ADVANCE';
+    public const TYPE_REGULAR = 'REGULAR';
+
     protected $fillable = [
         'center_id',
         'payment_date',
+        'payment_type',
         'amount',
         'payment_mode',
         'company_account',

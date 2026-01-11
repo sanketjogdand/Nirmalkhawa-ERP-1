@@ -22,6 +22,7 @@
                 <select id="milk_type" wire:model="milk_type" class="input-field" required>
                     <option value="CM">Cow Milk</option>
                     <option value="BM">Buffalo Milk</option>
+                    <option value="MIX">Mix Milk</option>
                 </select>
                 @error('milk_type')<span style="color:red; font-size:12px;">{{ $message }}</span>@enderror
             </div>

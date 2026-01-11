@@ -43,6 +43,14 @@
             @error('payment_date') <span style="color:red;">{{ $message }}</span> @enderror
         </div>
         <div class="form-group">
+            <label for="payment_type">Payment Type <span style="color:red;">*</span></label>
+            <select id="payment_type" wire:model.live="payment_type" class="input-field" @disabled($isLocked)>
+                <option value="{{ \App\Models\CenterPayment::TYPE_REGULAR }}">REGULAR</option>
+                <option value="{{ \App\Models\CenterPayment::TYPE_ADVANCE }}">ADVANCE</option>
+            </select>
+            @error('payment_type') <span style="color:red;">{{ $message }}</span> @enderror
+        </div>
+        <div class="form-group">
             <label for="amount">Amount <span style="color:red;">*</span></label>
             <input id="amount" type="number" step="0.01" min="0" wire:model.live="amount" class="input-field" placeholder="0.00" @disabled($isLocked)>
             @error('amount') <span style="color:red;">{{ $message }}</span> @enderror
