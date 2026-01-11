@@ -203,6 +203,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'payroll.update',
             'payroll.lock',
             'payroll.unlock',
+            'report.view',
         ];
 
         foreach ($permissions as $permission) {

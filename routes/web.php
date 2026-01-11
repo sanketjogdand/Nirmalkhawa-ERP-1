@@ -94,6 +94,31 @@ use App\Livewire\SalesInvoice\Form as SalesInvoiceForm;
 use App\Livewire\SalesInvoice\Show as SalesInvoiceShow;
 use App\Livewire\SalesInvoice\View as SalesInvoiceView;
 use App\Livewire\Setup;
+use App\Livewire\Reports\MilkProduction\CenterWiseMilkSummary;
+use App\Livewire\Reports\MilkProduction\DailyMilkRegister;
+use App\Livewire\Reports\MilkProduction\ManualRateExceptionReport;
+use App\Livewire\Reports\MilkProduction\MilkYieldReport;
+use App\Livewire\Reports\Inventory\CurrentStockSnapshotBulk;
+use App\Livewire\Reports\Inventory\InventoryLedgerBulk;
+use App\Livewire\Reports\Inventory\PackStockSummary;
+use App\Livewire\Reports\Inventory\PackLedger;
+use App\Livewire\Reports\SalesDispatch\SalesInvoiceRegister;
+use App\Livewire\Reports\SalesDispatch\ProductWiseSalesSummary;
+use App\Livewire\Reports\SalesDispatch\DispatchRegister;
+use App\Livewire\Reports\SalesDispatch\CustomerProfitability;
+use App\Livewire\Reports\ExpensesSuppliers\GeneralExpenseRegister;
+use App\Livewire\Reports\ExpensesSuppliers\ExpenseCategorySummary;
+use App\Livewire\Reports\ExpensesSuppliers\RcmExpenseReport;
+use App\Livewire\Reports\ExpensesSuppliers\SupplierLedger;
+use App\Livewire\Reports\EmployeesCenters\AttendanceRegister;
+use App\Livewire\Reports\EmployeesCenters\SalaryRegister;
+use App\Livewire\Reports\EmployeesCenters\EmployeeBalanceReport;
+use App\Livewire\Reports\EmployeesCenters\CenterSettlementReport;
+use App\Livewire\Reports\GstCompliance\GstOutputSummary;
+use App\Livewire\Reports\GstCompliance\GstInputSummary;
+use App\Livewire\Reports\GstCompliance\RcmSummary;
+use App\Livewire\Reports\Management\ManualOverrideReport;
+use App\Livewire\Reports\Management\BackdatedEntryReport;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -565,6 +590,40 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:materialconsumption.update')
         ->whereNumber('materialConsumption')
         ->name('material-consumptions.edit');
+
+    Route::middleware('permission:report.view')->prefix('reports')->name('reports.')->group(function () {
+        Route::get('milk-production/center-wise-milk-summary', CenterWiseMilkSummary::class)->name('milk-production.center-wise-milk-summary');
+        Route::get('milk-production/daily-milk-register', DailyMilkRegister::class)->name('milk-production.daily-milk-register');
+        Route::get('milk-production/manual-rate-exception', ManualRateExceptionReport::class)->name('milk-production.manual-rate-exception');
+        Route::get('milk-production/milk-yield', MilkYieldReport::class)->name('milk-production.milk-yield');
+
+        Route::get('inventory/current-stock-snapshot', CurrentStockSnapshotBulk::class)->name('inventory.current-stock-snapshot');
+        Route::get('inventory/inventory-ledger', InventoryLedgerBulk::class)->name('inventory.ledger');
+        Route::get('inventory/pack-stock-summary', PackStockSummary::class)->name('inventory.pack-stock-summary');
+        Route::get('inventory/pack-ledger', PackLedger::class)->name('inventory.pack-ledger');
+
+        Route::get('sales-dispatch/sales-invoice-register', SalesInvoiceRegister::class)->name('sales-dispatch.sales-invoice-register');
+        Route::get('sales-dispatch/product-wise-sales-summary', ProductWiseSalesSummary::class)->name('sales-dispatch.product-wise-sales-summary');
+        Route::get('sales-dispatch/dispatch-register', DispatchRegister::class)->name('sales-dispatch.dispatch-register');
+        Route::get('sales-dispatch/customer-profitability', CustomerProfitability::class)->name('sales-dispatch.customer-profitability');
+
+        Route::get('expenses-suppliers/general-expense-register', GeneralExpenseRegister::class)->name('expenses-suppliers.general-expense-register');
+        Route::get('expenses-suppliers/expense-category-summary', ExpenseCategorySummary::class)->name('expenses-suppliers.expense-category-summary');
+        Route::get('expenses-suppliers/rcm-expense-report', RcmExpenseReport::class)->name('expenses-suppliers.rcm-expense-report');
+        Route::get('expenses-suppliers/supplier-ledger', SupplierLedger::class)->name('expenses-suppliers.supplier-ledger');
+
+        Route::get('employees-centers/attendance-register', AttendanceRegister::class)->name('employees-centers.attendance-register');
+        Route::get('employees-centers/salary-register', SalaryRegister::class)->name('employees-centers.salary-register');
+        Route::get('employees-centers/employee-balance', EmployeeBalanceReport::class)->name('employees-centers.employee-balance');
+        Route::get('employees-centers/center-settlement', CenterSettlementReport::class)->name('employees-centers.center-settlement');
+
+        Route::get('gst-compliance/gst-output-summary', GstOutputSummary::class)->name('gst-compliance.gst-output-summary');
+        Route::get('gst-compliance/gst-input-summary', GstInputSummary::class)->name('gst-compliance.gst-input-summary');
+        Route::get('gst-compliance/rcm-summary', RcmSummary::class)->name('gst-compliance.rcm-summary');
+
+        Route::get('management/manual-override', ManualOverrideReport::class)->name('management.manual-override');
+        Route::get('management/backdated-entries', BackdatedEntryReport::class)->name('management.backdated-entries');
+    });
 
     Route::get('/setup', Setup::class)->name('setup');
     Route::get('settings/profile', Profile::class)->name('settings.profile');

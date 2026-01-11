@@ -407,6 +407,64 @@
                 </flux:navlist.group>
             </flux:navlist>
 
+
+            @can('report.view')
+                <flux:navlist.group expandable :heading="__('Reports')" class="lg:grid" :expanded="request()->routeIs('reports.*')">
+                    <div class="px-1 py-2">
+                        <div class="text-xs leading-none text-zinc-400">Milk &amp; Production</div>
+                    </div>
+                    <flux:navlist.item :href="route('reports.milk-production.center-wise-milk-summary')" :current="request()->routeIs('reports.milk-production.center-wise-milk-summary')" wire:navigate>{{ __('Center-wise Milk Summary') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.milk-production.daily-milk-register')" :current="request()->routeIs('reports.milk-production.daily-milk-register')" wire:navigate>{{ __('Daily Milk Register') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.milk-production.manual-rate-exception')" :current="request()->routeIs('reports.milk-production.manual-rate-exception')" wire:navigate>{{ __('Manual Rate Exceptions') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.milk-production.milk-yield')" :current="request()->routeIs('reports.milk-production.milk-yield')" wire:navigate>{{ __('Milk Yield') }}</flux:navlist.item>
+
+                    <div class="px-1 py-2">
+                        <div class="text-xs leading-none text-zinc-400">Inventory</div>
+                    </div>
+                    <flux:navlist.item :href="route('reports.inventory.current-stock-snapshot')" :current="request()->routeIs('reports.inventory.current-stock-snapshot')" wire:navigate>{{ __('Current Stock Snapshot') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.inventory.ledger')" :current="request()->routeIs('reports.inventory.ledger')" wire:navigate>{{ __('Inventory Ledger') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.inventory.pack-stock-summary')" :current="request()->routeIs('reports.inventory.pack-stock-summary')" wire:navigate>{{ __('Pack Stock Summary') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.inventory.pack-ledger')" :current="request()->routeIs('reports.inventory.pack-ledger')" wire:navigate>{{ __('Pack Ledger') }}</flux:navlist.item>
+
+                    <div class="px-1 py-2">
+                        <div class="text-xs leading-none text-zinc-400">Sales &amp; Dispatch</div>
+                    </div>
+                    <flux:navlist.item :href="route('reports.sales-dispatch.sales-invoice-register')" :current="request()->routeIs('reports.sales-dispatch.sales-invoice-register')" wire:navigate>{{ __('Sales Invoice Register') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.sales-dispatch.product-wise-sales-summary')" :current="request()->routeIs('reports.sales-dispatch.product-wise-sales-summary')" wire:navigate>{{ __('Product-wise Sales Summary') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.sales-dispatch.dispatch-register')" :current="request()->routeIs('reports.sales-dispatch.dispatch-register')" wire:navigate>{{ __('Dispatch Register') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.sales-dispatch.customer-profitability')" :current="request()->routeIs('reports.sales-dispatch.customer-profitability')" wire:navigate>{{ __('Customer Profitability') }}</flux:navlist.item>
+
+                    <div class="px-1 py-2">
+                        <div class="text-xs leading-none text-zinc-400">Expenses &amp; Suppliers</div>
+                    </div>
+                    <flux:navlist.item :href="route('reports.expenses-suppliers.general-expense-register')" :current="request()->routeIs('reports.expenses-suppliers.general-expense-register')" wire:navigate>{{ __('General Expense Register') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.expenses-suppliers.expense-category-summary')" :current="request()->routeIs('reports.expenses-suppliers.expense-category-summary')" wire:navigate>{{ __('Expense Category Summary') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.expenses-suppliers.rcm-expense-report')" :current="request()->routeIs('reports.expenses-suppliers.rcm-expense-report')" wire:navigate>{{ __('RCM Expense Report') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.expenses-suppliers.supplier-ledger')" :current="request()->routeIs('reports.expenses-suppliers.supplier-ledger')" wire:navigate>{{ __('Supplier Ledger') }}</flux:navlist.item>
+
+                    <div class="px-1 py-2">
+                        <div class="text-xs leading-none text-zinc-400">Employees &amp; Centers</div>
+                    </div>
+                    <flux:navlist.item :href="route('reports.employees-centers.attendance-register')" :current="request()->routeIs('reports.employees-centers.attendance-register')" wire:navigate>{{ __('Attendance Register') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.employees-centers.salary-register')" :current="request()->routeIs('reports.employees-centers.salary-register')" wire:navigate>{{ __('Salary Register') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.employees-centers.employee-balance')" :current="request()->routeIs('reports.employees-centers.employee-balance')" wire:navigate>{{ __('Employee Balance') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.employees-centers.center-settlement')" :current="request()->routeIs('reports.employees-centers.center-settlement')" wire:navigate>{{ __('Center Settlement') }}</flux:navlist.item>
+
+                    <div class="px-1 py-2">
+                        <div class="text-xs leading-none text-zinc-400">GST &amp; Compliance</div>
+                    </div>
+                    <flux:navlist.item :href="route('reports.gst-compliance.gst-output-summary')" :current="request()->routeIs('reports.gst-compliance.gst-output-summary')" wire:navigate>{{ __('GST Output Summary') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.gst-compliance.gst-input-summary')" :current="request()->routeIs('reports.gst-compliance.gst-input-summary')" wire:navigate>{{ __('GST Input Summary') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.gst-compliance.rcm-summary')" :current="request()->routeIs('reports.gst-compliance.rcm-summary')" wire:navigate>{{ __('RCM Summary') }}</flux:navlist.item>
+
+                    <div class="px-1 py-2">
+                        <div class="text-xs leading-none text-zinc-400">Management / Exceptions</div>
+                    </div>
+                    <flux:navlist.item :href="route('reports.management.manual-override')" :current="request()->routeIs('reports.management.manual-override')" wire:navigate>{{ __('Manual Override') }}</flux:navlist.item>
+                    <flux:navlist.item :href="route('reports.management.backdated-entries')" :current="request()->routeIs('reports.management.backdated-entries')" wire:navigate>{{ __('Backdated Entries') }}</flux:navlist.item>
+                </flux:navlist.group>
+            @endcan
+
             @if(auth()->user()->can('center.view') || auth()->user()->can('centersettlement.view') || auth()->user()->can('centerpayment.view'))
                 <flux:navlist.group expandable :heading="__('Centers')" class="lg:grid" :expanded="request()->routeIs(['centers.*','milk-intakes.*','center-settlements.*','center-payments.*','settlement-templates'])">
                     @can('center.view')

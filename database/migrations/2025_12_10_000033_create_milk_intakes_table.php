@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('center_id')->constrained()->cascadeOnDelete();
             $table->date('date');
             $table->string('shift', 10); // MORNING, EVENING
-            $table->string('milk_type', 2); // CM, BM
+            $table->string('milk_type', 3); // CM, BM, MIX
             $table->decimal('qty_ltr', 10, 2);
             $table->decimal('density_factor', 5, 3)->default(1.030);
             $table->decimal('qty_kg', 10, 3);
